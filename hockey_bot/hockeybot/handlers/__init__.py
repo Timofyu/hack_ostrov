@@ -1,0 +1,14 @@
+from aiogram import F, Router
+from aiogram.enums import ChatType
+
+from hockeybot.handlers import common, match, templates
+
+
+def setup_routers() -> Router:
+    root = Router(name="root")
+    root.message.filter(F.chat.type == ChatType.PRIVATE)
+    root.callback_query.filter(F.message.chat.type == ChatType.PRIVATE)
+    root.include_router(common.router)
+    root.include_router(templates.router)
+    root.include_router(match.router)
+    return root
