@@ -4,6 +4,7 @@ from hockeybot.captions import build_context, render_caption, scorers_line
 from hockeybot.db import Database
 from hockeybot.models import Footer, Goal
 from hockeybot.parsing import ParseError, parse_footer, parse_goals, parse_periods, parse_quick, parse_score
+from hockeybot.poster import browser_family
 from hockeybot.teams import find_clubs
 from hockeybot.templates_lib import demo_card
 
@@ -78,6 +79,13 @@ def test_template_roundtrip(tmp_path: Path) -> None:
     assert settings.default_template == saved.id
     assert settings.channel_title == "Канал"
     assert db.delete_template(7, saved.id)
+
+
+def test_any_common_browser_is_recognized() -> None:
+    assert browser_family(r"C:\Program Files\Mozilla Firefox\firefox.exe") == "firefox"
+    assert browser_family("/usr/bin/microsoft-edge") == "chromium"
+    assert browser_family("/Applications/Yandex.app/Contents/MacOS/Yandex") == "chromium"
+    assert browser_family(r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") == "chromium"
 
 
 def test_bad_score() -> None:

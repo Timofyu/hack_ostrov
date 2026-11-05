@@ -32,7 +32,9 @@ def render_poster(card: MatchCard, dest: Path, chrome_path: str | None = None) -
     chrome = chrome_path or find_chrome()
     if not chrome:
         raise PosterError(
-            "Не найден Chrome. Поставь Google Chrome или укажи путь в CHROME_PATH."
+            "Не нашёл браузер, которым можно собрать картинку. "
+            "Подойдёт Chrome, Edge, Яндекс Браузер, Brave, Opera или Firefox. "
+            "Если браузер установлен, укажи путь к нему в BROWSER_PATH."
         )
     missing = [name for name in ("Unbounded.ttf", "Inter-Regular.ttf", "Inter-Bold.ttf") if not (FONTS / name).exists()]
     if missing:
@@ -43,7 +45,7 @@ def render_poster(card: MatchCard, dest: Path, chrome_path: str | None = None) -
 
     with tempfile.TemporaryDirectory(prefix="hockey-poster-") as tmp_name:
         tmp = Path(tmp_name)
-        (tmp / "fonts").symlink_to(FONTS)
+        _link_fonts(tmp / "fonts")
         if card.photo_path:
             source = Path(card.photo_path)
             if not source.is_file():
@@ -58,6 +60,13 @@ def render_poster(card: MatchCard, dest: Path, chrome_path: str | None = None) -
         _screenshot(tmp / "index.html", png, chrome)
         dest.write_bytes(png.read_bytes())
     return dest
+
+
+def _link_fonts(destination: Path) -> None:
+    try:
+        destination.symlink_to(FONTS, target_is_directory=True)
+    except OSError:
+        shutil.copytree(FONTS, destination)
 
 
 def build_view(card: MatchCard) -> dict:
@@ -165,21 +174,89 @@ def name_size(lines: list[str]) -> str:
 
 
 def find_chrome() -> str | None:
-    configured = os.environ.get("CHROME_PATH", "").strip()
-    candidates = [configured] if configured else []
-    candidates.extend(
-        [
-            "/opt/google/chrome/chrome",
-            "/usr/bin/google-chrome",
-            "/usr/bin/google-chrome-stable",
-            "/usr/bin/chromium",
-            "/usr/bin/chromium-browser",
-        ]
-    )
-    for candidate in candidates:
+    """Ищет любой браузер, которым можно снять превью. Chrome не обязателен."""
+    for candidate in _browser_candidates():
         if candidate and Path(candidate).is_file():
             return candidate
     return None
+
+
+def browser_family(path: str) -> str:
+    name = Path(path).name.lower()
+    if "firefox" in name:
+        return "firefox"
+    return "chromium"
+
+
+def _browser_candidates() -> list[str]:
+    configured: list[str] = []
+    for key in ("BROWSER_PATH", "CHROME_PATH"):
+        value = os.environ.get(key, "").strip().strip('"')
+        if value:
+            configured.append(value)
+    on_path: list[str] = []
+    for name in (
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+        "microsoft-edge",
+        "microsoft-edge-stable",
+        "msedge",
+        "brave-browser",
+        "brave",
+        "yandex-browser",
+        "opera",
+        "firefox",
+        "firefox-esr",
+    ):
+        found = shutil.which(name)
+        if found:
+            on_path.append(found)
+    # Сначала обычные установки. Обёртки из PATH иногда добавляют отладчик и не завершаются.
+    return configured + _known_browser_paths() + on_path
+
+
+def _known_browser_paths() -> list[str]:
+    home = Path.home()
+    local = os.environ.get("LOCALAPPDATA", "")
+    program = os.environ.get("PROGRAMFILES", r"C:\Program Files")
+    program_x86 = os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)")
+    paths = [
+        "/opt/google/chrome/chrome",
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/microsoft-edge",
+        "/usr/bin/microsoft-edge-stable",
+        "/usr/bin/brave-browser",
+        "/usr/bin/yandex-browser",
+        "/usr/bin/opera",
+        "/usr/bin/firefox",
+        "/snap/bin/firefox",
+        "/snap/bin/chromium",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        "/Applications/Yandex.app/Contents/MacOS/Yandex",
+        "/Applications/Opera.app/Contents/MacOS/Opera",
+        "/Applications/Firefox.app/Contents/MacOS/firefox",
+        str(Path(program) / "Google/Chrome/Application/chrome.exe"),
+        str(Path(program_x86) / "Google/Chrome/Application/chrome.exe"),
+        str(Path(local) / "Google/Chrome/Application/chrome.exe") if local else "",
+        str(home / "AppData/Local/Google/Chrome/Application/chrome.exe"),
+        str(Path(program) / "Microsoft/Edge/Application/msedge.exe"),
+        str(Path(program_x86) / "Microsoft/Edge/Application/msedge.exe"),
+        str(Path(program) / "BraveSoftware/Brave-Browser/Application/brave.exe"),
+        str(Path(local) / "Yandex/YandexBrowser/Application/browser.exe") if local else "",
+        str(home / "AppData/Local/Yandex/YandexBrowser/Application/browser.exe"),
+        str(Path(program) / "Mozilla Firefox/firefox.exe"),
+        str(Path(program_x86) / "Mozilla Firefox/firefox.exe"),
+        str(Path(local) / "Programs/Opera/opera.exe") if local else "",
+    ]
+    return [path for path in paths if path]
 
 
 def _mode(card: MatchCard) -> str:
@@ -215,11 +292,35 @@ def _hex(value: str, fallback: str) -> str:
     return fallback
 
 
-def _screenshot(html_path: Path, png_path: Path, chrome: str) -> None:
+def _screenshot(html_path: Path, png_path: Path, browser: str) -> None:
     profile = html_path.parent / "profile"
+    if browser_family(browser) == "firefox":
+        commands = [_firefox_command(browser, html_path, png_path, profile)]
+    else:
+        commands = [
+            _chromium_command(browser, html_path, png_path, profile / "new", headless="--headless=new"),
+            _chromium_command(browser, html_path, png_path, profile / "classic", headless="--headless"),
+        ]
+    for command, env in commands:
+        if png_path.exists():
+            png_path.unlink()
+        _run_browser(command, env)
+        if png_path.exists() and png_path.stat().st_size >= 5000:
+            return
+    raise PosterError("Браузер не собрал превью. Попробуй ещё раз.")
+
+
+def _chromium_command(
+    browser: str,
+    html_path: Path,
+    png_path: Path,
+    profile: Path,
+    *,
+    headless: str,
+) -> tuple[list[str], dict[str, str]]:
     command = [
-        chrome,
-        "--headless=new",
+        browser,
+        headless,
         "--disable-gpu",
         "--hide-scrollbars",
         "--no-sandbox",
@@ -231,16 +332,54 @@ def _screenshot(html_path: Path, png_path: Path, chrome: str) -> None:
         f"--screenshot={png_path}",
         html_path.as_uri(),
     ]
+    return command, os.environ.copy()
+
+
+def _firefox_command(
+    browser: str,
+    html_path: Path,
+    png_path: Path,
+    profile: Path,
+) -> tuple[list[str], dict[str, str]]:
+    command = [
+        browser,
+        "--headless",
+        "--profile",
+        str(profile),
+        "--screenshot",
+        str(png_path),
+        html_path.as_uri(),
+    ]
+    env = os.environ.copy()
+    env["MOZ_HEADLESS"] = "1"
+    env["MOZ_HEADLESS_WIDTH"] = "1080"
+    env["MOZ_HEADLESS_HEIGHT"] = "1350"
+    return command, env
+
+
+def _run_browser(command: list[str], env: dict[str, str]) -> None:
+    if os.name == "nt":
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=env,
+        )
+        try:
+            process.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+        return
     process = subprocess.Popen(
         command,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         start_new_session=True,
+        env=env,
     )
     try:
         process.wait(timeout=20)
     except subprocess.TimeoutExpired:
         os.killpg(process.pid, signal.SIGKILL)
         process.wait(timeout=5)
-    if not png_path.exists() or png_path.stat().st_size < 5000:
-        raise PosterError("Chrome не собрал превью. Попробуй ещё раз.")

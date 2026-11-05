@@ -4,28 +4,42 @@ Telegram-бот собирает превью матча и текст пост�
 
 ## Запуск
 
-Нужны Python 3.11+ и Google Chrome.
+Бот живёт в Telegram, а картинку собирает у тебя на компьютере. Сам браузер открывать не нужно: подойдёт любой уже установленный — Chrome, Edge, Яндекс Браузер, Brave, Opera или Firefox.
+
+Нужен Python 3.11+.
 
 ```bash
 cd hockey_bot
 python -m venv .venv
+```
+
+Windows:
+
+```bat
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
+python bot.py
+```
+
+macOS и Linux:
+
+```bash
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+python bot.py
 ```
 
 В `.env` впиши токен от [@BotFather](https://t.me/BotFather):
 
 ```
 BOT_TOKEN=123:abc
-ALLOWED_USER_IDS=111111,222222
 ```
 
-`ALLOWED_USER_IDS` можно оставить пустым, тогда бот ответит любому. Если Chrome лежит не в стандартном месте, укажи `CHROME_PATH`.
+`ALLOWED_USER_IDS` можно оставить пустым, тогда бот ответит любому. Если браузер установлен, но бот его не видит, укажи путь в `BROWSER_PATH`.
 
-```bash
-python bot.py
-```
+Пока окно с `python bot.py` открыто, бот в Telegram онлайн. Закроешь окно — бот замолчит, пока снова не запустишь команду.
 
 ## Как постить
 
