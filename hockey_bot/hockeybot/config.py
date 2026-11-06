@@ -17,6 +17,20 @@ class Config:
     chrome_path: str | None
 
 
+def _env_text(name: str) -> str:
+    return os.environ.get(name, "").strip().strip('"')
+
+
+def _env_path(name: str, default: Path) -> Path:
+    raw = _env_text(name)
+    if not raw:
+        return default
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        path = (ROOT / path).resolve()
+    return path
+
+
 def load_config() -> Config:
     load_dotenv(ROOT / ".env")
     load_dotenv()
@@ -28,8 +42,8 @@ def load_config() -> Config:
         part = part.strip()
         if part.isdigit():
             allowed.add(int(part))
-    db_path = Path(os.environ.get("DB_PATH", ROOT / "data" / "bot.sqlite"))
-    chrome = os.environ.get("CHROME_PATH", "").strip() or None
+    db_path = _env_path("DB_PATH", ROOT / "data" / "bot.sqlite")
+    chrome = _env_text("BROWSER_PATH") or _env_text("CHROME_PATH") or None
     return Config(
         token=token,
         db_path=db_path,

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from hockeybot.captions import build_context, render_caption, scorers_line
+from hockeybot.config import ROOT, load_config
 from hockeybot.db import Database
 from hockeybot.models import Footer, Goal
 from hockeybot.parsing import ParseError, parse_footer, parse_goals, parse_periods, parse_quick, parse_score
@@ -86,6 +87,16 @@ def test_any_common_browser_is_recognized() -> None:
     assert browser_family("/usr/bin/microsoft-edge") == "chromium"
     assert browser_family("/Applications/Yandex.app/Contents/MacOS/Yandex") == "chromium"
     assert browser_family(r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") == "chromium"
+
+
+def test_blank_db_path_uses_project_database(monkeypatch) -> None:
+    monkeypatch.setenv("BOT_TOKEN", "123:TEST")
+    monkeypatch.setenv("DB_PATH", "")
+    monkeypatch.setenv("BROWSER_PATH", "")
+    monkeypatch.setenv("CHROME_PATH", "")
+    config = load_config()
+    assert config.db_path == ROOT / "data" / "bot.sqlite"
+    assert config.chrome_path is None
 
 
 def test_bad_score() -> None:
