@@ -7,6 +7,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from html import unescape
+from typing import Callable
 
 from hockeybot.models import Club
 from hockeybot.teams import normalize_name
@@ -109,8 +110,12 @@ def score_post(post: ChannelPost, opponent: Club, played_at: datetime) -> int:
     if any(word in text for word in ("побед", "одержал", "сухар", "шайб")):
         score += 2
     hours = (published - played_at).total_seconds() / 3600
-    if -2 <= hours <= 8:
-        score += 2
+    if hours < -0.25:
+        # Кадры до вбрасывания — приезд и раздевалка, не сам матч.
+        score -= 4
+    elif hours >= 2 and hours <= 30:
+        # Альбом после игры важнее кричалки в момент вбрасывания.
+        score += 3
     return score
 
 
@@ -145,30 +150,134 @@ def _mentions(text: str, club: Club) -> bool:
     return any(len(needle) >= 3 and needle in text for needle in needles)
 
 
+def collect_posts(load_page: Callable[[int | None], list[ChannelPost]], played_at: datetime) -> list[ChannelPost]:
+    """Достаёт посты вокруг матча. Старые альбомы ищет по номеру поста, а не с первой страницы."""
+    if played_at.tzinfo is None:
+        played_at = played_at.replace(tzinfo=timezone.utc)
+    window_start = played_at - timedelta(hours=3)
+    window_end = played_at + timedelta(hours=36)
+    first = load_page(None)
+    if not first:
+        return []
+    if _oldest(first) <= window_end:
+        return _walk_back(load_page, first, window_start)
+    low = 0
+    high = max(post.post_id for post in first) + 1
+    found: list[ChannelPost] | None = None
+    closest: list[ChannelPost] | None = None
+    closest_gap = timedelta(days=3650)
+    for _ in range(16):
+        if high <= low + 1:
+            break
+        mid = (low + high) // 2
+        previous = (low, high)
+        page = load_page(mid)
+        if not page:
+            high = mid
+            continue
+        page_old = _oldest(page)
+        page_new = _newest(page)
+        if page_new < window_start:
+            gap = window_start - page_new
+            low = max(post.post_id for post in page)
+        elif page_old > window_end:
+            gap = page_old - window_end
+            high = min(post.post_id for post in page)
+        else:
+            found = page
+            break
+        if gap < closest_gap:
+            closest = page
+            closest_gap = gap
+        if (low, high) == previous or low >= high:
+            break
+    if not found and closest is not None and closest_gap <= timedelta(days=5):
+        found = closest
+    if not found:
+        return []
+    return _around(load_page, found, window_start, window_end)
+
+
 def _load_channel(username: str, played_at: datetime) -> list[ChannelPost]:
     if not re.fullmatch(r"[A-Za-z0-9_]{4,64}", username):
         return []
-    window_start = played_at - timedelta(hours=3)
-    collected: list[ChannelPost] = []
-    before: int | None = None
-    for _ in range(8):
+
+    def load_page(before: int | None) -> list[ChannelPost]:
         url = f"https://t.me/s/{username}"
         if before is not None:
             url += f"?before={before}"
-        page = parse_telegram_channel(_fetch(url))
+        return parse_telegram_channel(_fetch(url))
+
+    return collect_posts(load_page, played_at)
+
+
+def _walk_back(
+    load_page: Callable[[int | None], list[ChannelPost]],
+    first: list[ChannelPost],
+    window_start: datetime,
+) -> list[ChannelPost]:
+    collected = list(first)
+    before = min(post.post_id for post in first)
+    for _ in range(8):
+        if _oldest(collected) <= window_start:
+            break
+        page = load_page(before)
         if not page:
             break
         collected.extend(page)
-        oldest = min(post.published for post in page)
-        if oldest.tzinfo is None:
-            oldest = oldest.replace(tzinfo=timezone.utc)
-        if oldest <= window_start:
-            break
         next_before = min(post.post_id for post in page)
-        if before is not None and next_before >= before:
+        if next_before >= before:
             break
         before = next_before
     return collected
+
+
+def _around(
+    load_page: Callable[[int | None], list[ChannelPost]],
+    seed: list[ChannelPost],
+    window_start: datetime,
+    window_end: datetime,
+) -> list[ChannelPost]:
+    collected = list(seed)
+    before = min(post.post_id for post in seed)
+    for _ in range(3):
+        if _oldest(collected) <= window_start:
+            break
+        page = load_page(before)
+        if not page:
+            break
+        collected.extend(page)
+        next_before = min(post.post_id for post in page)
+        if next_before >= before:
+            break
+        before = next_before
+    cursor = max(post.post_id for post in seed)
+    for _ in range(3):
+        if _newest(collected) >= window_end:
+            break
+        page = load_page(cursor + 30)
+        if not page:
+            break
+        newer = [post for post in page if post.post_id > cursor]
+        if not newer:
+            break
+        collected.extend(newer)
+        cursor = max(post.post_id for post in newer)
+    return collected
+
+
+def _oldest(posts: list[ChannelPost]) -> datetime:
+    return min(_aware(post.published) for post in posts)
+
+
+def _newest(posts: list[ChannelPost]) -> datetime:
+    return max(_aware(post.published) for post in posts)
+
+
+def _aware(moment: datetime) -> datetime:
+    if moment.tzinfo is None:
+        return moment.replace(tzinfo=timezone.utc)
+    return moment
 
 
 def _fetch(url: str) -> str:

@@ -112,6 +112,10 @@ def test_overtime_periods_are_not_cumulative() -> None:
         "overtime": "2:1",
     }
     assert period_lines(cumulative, [], 10) == ["1:0", "0:1", "0:0", "1:0"]
+    per_period = {"first_period": "0:2", "second_period": "0:0", "third_period": "2:1"}
+    assert period_lines(per_period, [], 10, final="2:3") == ["0:2", "0:0", "2:1"]
+    steady = {"first_period": "1:0", "second_period": "1:0", "third_period": "1:0"}
+    assert period_lines(steady, [], 10, final="3:0") == ["1:0", "1:0", "1:0"]
 
 
 def test_event_becomes_protocol_and_card() -> None:
@@ -195,6 +199,19 @@ def test_social_gallery_beats_a_later_promo() -> None:
         ("https://cdn4.telesco.pe/file/one.jpg",),
     )
     assert choose_post([promo, graphic, victory], cska, played) == victory
+    pregame = ChannelPost(
+        9,
+        datetime(2026, 11, 5, 11, 0, tzinfo=timezone.utc),
+        "Мегаспорт",
+        ("https://cdn4.telesco.pe/file/arrive.jpg",) * 7,
+    )
+    morning = ChannelPost(
+        13,
+        datetime(2026, 11, 6, 6, 30, tzinfo=timezone.utc),
+        "Фото. Регулярка закончена",
+        ("https://cdn4.telesco.pe/file/after.jpg",) * 10,
+    )
+    assert choose_post([pregame, morning], cska, played) == morning
 
     html = """
     <div class="tgme_widget_message " data-post="omskiyavangard/10">
@@ -206,6 +223,45 @@ def test_social_gallery_beats_a_later_promo() -> None:
     parsed = parse_telegram_channel(html)
     assert parsed[0].photos == ("https://cdn4.telesco.pe/file/win.jpg",)
     assert parsed[0].post_id == 10
+
+
+def test_old_album_is_found_past_the_first_page() -> None:
+    from datetime import datetime, timezone
+
+    from hockeybot.social import ChannelPost, collect_posts
+
+    played = datetime(2026, 5, 21, 16, 30, tzinfo=timezone.utc)
+
+    def load_page(before: int | None) -> list[ChannelPost]:
+        if before is None:
+            return [
+                ChannelPost(
+                    9000,
+                    datetime(2026, 11, 6, tzinfo=timezone.utc),
+                    "сегодня",
+                    ("https://cdn4.telesco.pe/file/new.jpg",),
+                )
+            ]
+        if before > 2000:
+            return [
+                ChannelPost(
+                    1500,
+                    datetime(2026, 8, 1, tzinfo=timezone.utc),
+                    "лето",
+                    ("https://cdn4.telesco.pe/file/mid.jpg",),
+                )
+            ]
+        return [
+            ChannelPost(
+                400,
+                datetime(2026, 5, 21, 18, tzinfo=timezone.utc),
+                "Победа! Альбом финала",
+                ("https://cdn4.telesco.pe/file/old.jpg",) * 5,
+            )
+        ]
+
+    posts = collect_posts(load_page, played)
+    assert any(post.photos[0].endswith("old.jpg") for post in posts)
 
 
 def test_load_match_uses_calendar_then_protocol() -> None:
@@ -233,3 +289,58 @@ def test_missing_game_lists_the_day() -> None:
     with pytest.raises(KhlError) as exc:
         load_match("Авангард ЦСКА 5 ноября 2026", today=TODAY, opener=opener)
     assert "Лада — Сочи 3:2" in str(exc.value)
+
+
+def test_previous_season_playoff_comes_from_its_stage() -> None:
+    from datetime import datetime, timedelta, timezone
+
+    msk = timezone(timedelta(hours=3))
+    playoff_day = int(datetime(2026, 5, 21, tzinfo=msk).timestamp())
+    protocol = {
+        **EVENT,
+        "id": 2986031,
+        "season": "2025/2026",
+        "stage_name": "Плей-офф 2025/2026",
+        "score": "2:3",
+        "scores": {"first_period": "0:2", "second_period": "0:0", "third_period": "2:1"},
+        "team_a": {**EVENT["team_a"], "name": "Ак Барс", "location": "Казань"},
+        "team_b": {**EVENT["team_b"], "name": "Локомотив", "location": "Ярославль"},
+    }
+
+    def opener(url: str, params: dict) -> dict | list:
+        if url.endswith("data.json"):
+            return {
+                "stages_v2": [
+                    {"id": 407, "season": "2026/2027", "type": "regular"},
+                    {"id": 395, "season": "2025/2026", "type": "playoff"},
+                    {"id": 370, "season": "2025/2026", "type": "regular"},
+                ]
+            }
+        if url.endswith("events_v2.json"):
+            start = params.get("q[start_at_gt_time_from_unixtime]")
+            if params.get("stage_id") == 395 and start == playoff_day:
+                return [
+                    {
+                        "event": {
+                            "id": 2986031,
+                            "type_id": 18,
+                            "game_state_key": "finished",
+                            "team_a": {"name": "Ак Барс"},
+                            "team_b": {"name": "Локомотив"},
+                            "score": "2:3",
+                            "start_at": 1,
+                        }
+                    }
+                ]
+            return []
+        return {"event": protocol}
+
+    imported = load_match("Локомотив Ак Барс 21 мая 2026", today=TODAY, opener=opener)
+    assert imported.card.home.name == "Ак Барс"
+    assert (imported.card.home_score, imported.card.away_score) == (2, 3)
+    assert imported.card.tournament == "Плей-офф · 25/26"
+    assert imported.card.periods == ["0:2", "0:0", "2:1"]
+    assert "плей-офф" in imported.caption
+
+    skipped = load_match("Локомотив Ак Барс 21 мая", today=TODAY, opener=opener)
+    assert skipped.card.tournament == "Плей-офф · 25/26"

@@ -5,7 +5,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
@@ -14,6 +14,7 @@ from hockeybot.teams import custom_club, find_clubs, normalize_name, resolve_clu
 
 MSK = timezone(timedelta(hours=3))
 API_ROOT = "https://api-video.khl.ru/api/khl_site"
+MOBILE_ROOT = "https://api-video.khl.ru/api/khl_mobile"
 SITE_GAME = "https://www.khl.ru/game/{stage}/{game}/resume/"
 
 _MONTHS = {
@@ -62,6 +63,7 @@ class MatchRequest:
     left: str
     right: str
     day: date
+    year_explicit: bool = True
 
 
 @dataclass(frozen=True)
@@ -84,16 +86,38 @@ def parse_request(text: str, *, today: date | None = None) -> MatchRequest:
     teams = raw[: match.start()].strip(" ,.-—–")
     teams = _PREFIX_RE.sub("", teams).strip()
     left, right = _split_teams(teams)
-    day = _request_date(match, today or datetime.now(MSK).date())
-    return MatchRequest(left=left, right=right, day=day)
+    day, year_explicit = _request_date(match, today or datetime.now(MSK).date())
+    return MatchRequest(left=left, right=right, day=day, year_explicit=year_explicit)
 
 
 def load_match(text: str, *, today: date | None = None, opener: Opener | None = None) -> ImportedMatch:
-    request = parse_request(text, today=today)
+    clock = today or datetime.now(MSK).date()
+    request = parse_request(text, today=clock)
     fetch = opener or _open_json
+    last_error: KhlError | None = None
+    for day in _candidate_days(request, clock):
+        try:
+            return _import_day(replace(request, day=day), fetch)
+        except KhlError as exc:
+            if str(exc).startswith("Матч ещё не начался") or request.year_explicit:
+                raise
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise KhlError("Напиши два клуба и дату: Авангард ЦСКА 5 ноября 2026")
+
+
+def _import_day(request: MatchRequest, fetch: Opener) -> ImportedMatch:
     try:
         events = _events_on(request.day, fetch)
-        brief = _choose_event(events, request)
+        try:
+            brief = _choose_event(events, request)
+        except KhlError as first_error:
+            extra = _historical_events(request.day, fetch)
+            if not extra:
+                raise first_error
+            events = _one_per_game([*events, *extra])
+            brief = _choose_event(events, request)
         if brief.get("game_state_key") == "not_yet_started":
             raise KhlError(_not_started(brief, request.day))
         payload = fetch(f"{API_ROOT}/event_v2.json", {"id": brief["id"], "locale": "ru"})
@@ -117,7 +141,12 @@ def match_from_event(event: dict[str, Any]) -> ImportedMatch:
     home = club_from_api(home_raw, side="home")
     away = club_from_api(away_raw, side="away")
     home_score, away_score = _score_pair(event.get("score"))
-    periods = period_lines(event.get("scores") or {}, event.get("goals") or [], home_raw.get("id"))
+    periods = period_lines(
+        event.get("scores") or {},
+        event.get("goals") or [],
+        home_raw.get("id"),
+        final=str(event.get("score") or ""),
+    )
     goals = [_goal_from_api(item) for item in sorted(event.get("goals") or [], key=lambda item: item.get("time") or 0)]
     goals = [goal for goal in goals if goal is not None]
     played_on = datetime.fromtimestamp((event.get("event_start_at") or event.get("start_at") or 0) / 1000, tz=MSK)
@@ -145,7 +174,7 @@ def match_from_event(event: dict[str, Any]) -> ImportedMatch:
         goals=goals,
         footer=footer,
         note=note,
-        tournament=_tournament(event.get("season") or ""),
+        tournament=_tournament(event.get("season") or "", str(event.get("stage_name") or "")),
         kind="result",
     )
     caption = protocol_caption(
@@ -182,8 +211,13 @@ def match_photo_url(event: dict[str, Any]) -> str:
     return ""
 
 
-def period_lines(scores: dict[str, Any], goals: list[dict[str, Any]], home_id: Any) -> list[str]:
-    parsed = _periods_from_scores(scores)
+def period_lines(
+    scores: dict[str, Any],
+    goals: list[dict[str, Any]],
+    home_id: Any,
+    final: str | None = None,
+) -> list[str]:
+    parsed = _periods_from_scores(scores, final)
     if parsed and all(_period_ok(line) for line in parsed):
         return parsed
     return _periods_from_goals(goals, home_id)
@@ -238,7 +272,8 @@ def protocol_caption(
     elif overtime:
         score += " ОТ"
     lines = [f"{card.home.name} — {card.away.name}", score, ""]
-    when = " · ".join(part for part in (f"{card.date} {year}".strip(), card.arena) if part)
+    stage = "плей-офф" if card.tournament.lower().startswith("плей-офф") else ""
+    when = " · ".join(part for part in (f"{card.date} {year}".strip(), stage, card.arena) if part)
     if when:
         lines.append(when)
     if live:
@@ -263,17 +298,17 @@ def protocol_caption(
     return "\n".join(lines).strip()
 
 
-def _events_on(day: date, fetch: Opener) -> list[dict[str, Any]]:
+def _events_on(day: date, fetch: Opener, stage_id: int | None = None) -> list[dict[str, Any]]:
     start, end = _day_bounds(day)
-    payload = fetch(
-        f"{API_ROOT}/events_v2.json",
-        {
-            "locale": "ru",
-            "q[start_at_gt_time_from_unixtime]": start,
-            "q[start_at_lt_time_from_unixtime]": end,
-            "order_direction": "asc",
-        },
-    )
+    params: dict[str, Any] = {
+        "locale": "ru",
+        "q[start_at_gt_time_from_unixtime]": start,
+        "q[start_at_lt_time_from_unixtime]": end,
+        "order_direction": "asc",
+    }
+    if stage_id is not None:
+        params["stage_id"] = stage_id
+    payload = fetch(f"{API_ROOT}/events_v2.json", params)
     rows = payload if isinstance(payload, list) else []
     events: list[dict[str, Any]] = []
     for row in rows:
@@ -333,7 +368,56 @@ def _split_teams(text: str) -> tuple[str, str]:
     raise KhlError("Не вижу два клуба. Пример: Авангард ЦСКА 5 ноября 2026")
 
 
-def _request_date(match: re.Match[str], today: date) -> date:
+def _candidate_days(request: MatchRequest, today: date) -> list[date]:
+    if request.year_explicit:
+        return [request.day]
+    found: list[date] = []
+    for year in (today.year - 1, today.year, today.year + 1):
+        try:
+            found.append(date(year, request.day.month, request.day.day))
+        except ValueError:
+            continue
+    found.sort(key=lambda item: abs((item - today).days))
+    return found
+
+
+def _historical_events(day: date, fetch: Opener) -> list[dict[str, Any]]:
+    """Календарь текущего этапа не хранит прошлый сезон. Стадии лежат отдельно."""
+    payload = None
+    for url in (f"{MOBILE_ROOT}/data.json", "https://khl.api.webcaster.pro/api/khl_mobile/data.json"):
+        try:
+            payload = fetch(url, {"locale": "ru"})
+        except Exception:
+            payload = None
+            continue
+        if isinstance(payload, dict):
+            break
+        payload = None
+    if not isinstance(payload, dict):
+        return []
+    season = _season_label(day)
+    events: list[dict[str, Any]] = []
+    for stage in payload.get("stages_v2") or []:
+        if not isinstance(stage, dict):
+            continue
+        if stage.get("season") != season or stage.get("type") not in {"regular", "playoff"}:
+            continue
+        stage_id = stage.get("id")
+        if not isinstance(stage_id, int):
+            continue
+        try:
+            events.extend(_events_on(day, fetch, stage_id=stage_id))
+        except Exception:
+            continue
+    return events
+
+
+def _season_label(day: date) -> str:
+    start_year = day.year if day.month >= 7 else day.year - 1
+    return f"{start_year}/{start_year + 1}"
+
+
+def _request_date(match: re.Match[str], today: date) -> tuple[date, bool]:
     if match.group("day"):
         day = int(match.group("day"))
         month = _MONTHS[match.group("month").lower()]
@@ -345,10 +429,11 @@ def _request_date(match: re.Match[str], today: date) -> date:
         year = int(raw_year) if raw_year else None
         if year is not None and year < 100:
             year += 2000
+    explicit = year is not None
     if year is None:
         year = _nearest_year(day, month, today)
     try:
-        return date(year, month, day)
+        return date(year, month, day), explicit
     except ValueError as exc:
         raise KhlError("Такой даты нет. Проверь число и месяц.") from exc
 
@@ -365,7 +450,7 @@ def _nearest_year(day: int, month: int, today: date) -> int:
     return min(candidates, key=lambda item: abs((item - today).days)).year
 
 
-def _periods_from_scores(scores: dict[str, Any]) -> list[str]:
+def _periods_from_scores(scores: dict[str, Any], final: str | None = None) -> list[str]:
     ends: list[tuple[int, int]] = []
     for key in ("first_period", "second_period", "third_period"):
         pair = _maybe_pair(scores.get(key))
@@ -375,9 +460,22 @@ def _periods_from_scores(scores: dict[str, Any]) -> list[str]:
         return []
     lines: list[str] = []
     previous = (0, 0)
+    cumulative = True
     for end in ends:
-        lines.append(f"{end[0] - previous[0]}:{end[1] - previous[1]}")
+        delta = (end[0] - previous[0], end[1] - previous[1])
+        if delta[0] < 0 or delta[1] < 0:
+            cumulative = False
+            break
+        lines.append(f"{delta[0]}:{delta[1]}")
         previous = end
+    final_pair = _maybe_pair(final)
+    raw_sum = (sum(pair[0] for pair in ends), sum(pair[1] for pair in ends))
+    if cumulative and final_pair is not None and raw_sum == final_pair and ends[-1] != final_pair:
+        # Счёт периодов уже по периодам, а не нарастающий: 1:0, 1:0, 1:0 при итоге 3:0.
+        cumulative = False
+    if not cumulative:
+        lines = [f"{pair[0]}:{pair[1]}" for pair in ends]
+        previous = raw_sum
     for key in ("overtime", "bullitt"):
         current = _maybe_pair(scores.get(key))
         if current is None:
@@ -551,11 +649,14 @@ def _game_url(event: dict[str, Any]) -> str:
     return SITE_GAME.format(stage=stage, game=game)
 
 
-def _tournament(season: str) -> str:
+def _tournament(season: str, stage_name: str = "") -> str:
     match = re.search(r"(\d{4})\s*/\s*(\d{4})", season or "")
-    if not match:
+    short = f"{match.group(1)[2:]}/{match.group(2)[2:]}" if match else ""
+    if "плей" in normalize_name(stage_name):
+        return f"Плей-офф · {short}".strip(" ·")
+    if not short:
         return "КХЛ"
-    return f"КХЛ · {match.group(1)[2:]}/{match.group(2)[2:]}"
+    return f"КХЛ · {short}"
 
 
 def _missing(request: MatchRequest, events: list[dict[str, Any]]) -> str:
@@ -676,8 +777,11 @@ def _open_json(url: str, params: dict[str, Any]) -> Any:
             "Accept": "application/json",
         },
     )
-    try:
-        with urllib.request.urlopen(request, timeout=20) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise KhlError("Сайт КХЛ сейчас не отвечает. Попробуй ещё раз через минуту.") from exc
+    last_error: Exception | None = None
+    for _ in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=12) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            last_error = exc
+    raise KhlError("Сайт КХЛ сейчас не отвечает. Попробуй ещё раз через минуту.") from last_error
