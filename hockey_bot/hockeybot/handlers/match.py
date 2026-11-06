@@ -7,12 +7,13 @@ from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from hockeybot.captions import build_context, render_caption, split_caption
+from hockeybot.khl import KhlError, load_match, looks_like_khl_request
 from hockeybot.catalog import all_templates, resolve_template
 from hockeybot.db import Database
 from hockeybot.keyboards import (
@@ -33,7 +34,14 @@ from hockeybot.teams import custom_club, find_clubs, resolve_club
 router = Router(name="match")
 
 _PROMPTS = {
-    MatchSG.home: "Хозяева\n\nНапиши клуб. Например: Салават Юлаев",
+    MatchSG.home: (
+        "Встреча с сайта КХЛ\n\n"
+        "Напиши два клуба и дату одной строкой:\n"
+        "Авангард ЦСКА 5 ноября 2026\n\n"
+        "Бот откроет протокол на khl.ru, соберёт картинку и текст под фото.\n"
+        "Порядок клубов любой: хозяев он возьмёт из протокола.\n\n"
+        "Если хочешь собрать пост вручную, напиши только хозяев. Например: Салават Юлаев"
+    ),
     MatchSG.away: "Гости\n\nНапример: Лада",
     MatchSG.score: "Счёт\n\nФормат 5:0 — сначала шайбы хозяев.",
     MatchSG.when: "Дата и арена\n\nОдним сообщением: 4 ноября · Уфа-Арена",
@@ -186,10 +194,25 @@ async def on_quick(message: Message, state: FSMContext) -> None:
     await send_prompt(message, state, MatchSG.photo)
 
 
+@router.message(StateFilter(None), F.text, ~F.text.startswith("/"))
+async def khl_from_menu(message: Message, state: FSMContext, db: Database, chrome_path: str | None) -> None:
+    text = message.text or ""
+    if not looks_like_khl_request(text):
+        await message.answer(
+            "Напиши встречу и дату одной строкой:\nАвангард ЦСКА 5 ноября 2026",
+            reply_markup=menu_kb(),
+        )
+        return
+    await import_from_khl(message, state, db, chrome_path)
+
+
 @router.message(MatchSG.home, F.text, ~F.text.startswith("/"))
 @router.message(MatchSG.away, F.text, ~F.text.startswith("/"))
 async def on_club(message: Message, state: FSMContext, db: Database, chrome_path: str | None) -> None:
     current = await _current(state)
+    if current == MatchSG.home and looks_like_khl_request(message.text or ""):
+        await import_from_khl(message, state, db, chrome_path)
+        return
     slot = "home" if current == MatchSG.home else "away"
     raw = " ".join((message.text or "").split())
     if len(raw) < 2:
@@ -393,6 +416,43 @@ async def go_next(
     await send_prompt(message, state, nxt)
 
 
+async def import_from_khl(
+    message: Message,
+    state: FSMContext,
+    db: Database,
+    chrome_path: str | None,
+) -> None:
+    await message.answer("Смотрю протокол на сайте КХЛ…")
+    try:
+        imported = await asyncio.to_thread(load_match, message.text or "")
+    except KhlError as exc:
+        await message.answer(str(exc))
+        return
+    card = imported.card
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    settings = db.settings(user_id)
+    template = resolve_template(db, user_id, settings.default_template)
+    await state.update_data(
+        template_id=template.id,
+        template_name=template.name,
+        kind="result",
+        tournament=card.tournament,
+        home=card.home.to_dict(),
+        away=card.away.to_dict(),
+        home_score=card.home_score,
+        away_score=card.away_score,
+        date=card.date,
+        arena=card.arena,
+        periods=list(card.periods),
+        goals=[asdict(goal) for goal in card.goals],
+        footer=card.footer.to_dict(),
+        note=card.note,
+        photo_path=None,
+        caption_override=imported.caption,
+    )
+    await finish(message, state, db, chrome_path)
+
+
 async def finish(message: Message, state: FSMContext, db: Database, chrome_path: str | None) -> None:
     data = await state.get_data()
     if "home" not in data or "away" not in data:
@@ -401,7 +461,11 @@ async def finish(message: Message, state: FSMContext, db: Database, chrome_path:
     card = _card_from_state(data)
     user_id = message.chat.id
     template = resolve_template(db, user_id, data.get("template_id", "builtin:result"))
-    caption = render_caption(template.body, build_context(card))
+    caption = (data.get("caption_override") or "").strip()
+    if caption:
+        await state.update_data(caption_override="")
+    else:
+        caption = render_caption(template.body, build_context(card))
     if not caption:
         caption = f"{card.home.name} — {card.away.name}"
     renders = db.path.parent / "renders"

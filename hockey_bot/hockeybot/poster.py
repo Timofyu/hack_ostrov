@@ -16,7 +16,7 @@ from hockeybot.models import Club, Footer, Goal, MatchCard
 ASSETS = Path(__file__).resolve().parent / "assets"
 FONTS = ASSETS / "fonts"
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
-_PERIOD_LABELS = ("I", "II", "III", "ОТ")
+_PERIOD_LABELS = ("I", "II", "III", "ОТ", "Б")
 
 _ENV = Environment(
     loader=FileSystemLoader(ASSETS),
@@ -75,7 +75,7 @@ def build_view(card: MatchCard) -> dict:
     hot = {name for name, count in counts.items() if count >= 2}
     headline, headline_sub = goal_headline(card.goals)
     periods = []
-    for index, period in enumerate(card.periods[:4]):
+    for index, period in enumerate(card.periods[:5]):
         left, _, right = period.partition(":")
         periods.append(
             {
