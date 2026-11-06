@@ -27,6 +27,7 @@ from hockeybot.keyboards import (
 )
 from hockeybot.models import Club, Footer, Goal, MatchCard
 from hockeybot.parsing import ParseError, parse_footer, parse_goals, parse_periods, parse_quick, parse_score, parse_when
+from hockeybot.photos import download_match_photo
 from hockeybot.poster import PosterError, render_poster
 from hockeybot.states import MatchSG
 from hockeybot.teams import custom_club, find_clubs, resolve_club
@@ -430,6 +431,12 @@ async def import_from_khl(
         return
     card = imported.card
     user_id = message.from_user.id if message.from_user else message.chat.id
+    if imported.photo_url:
+        folder = db.path.parent / "uploads"
+        target = folder / f"khl-{user_id}-{int(time.time())}.jpg"
+        saved = await asyncio.to_thread(download_match_photo, imported.photo_url, target)
+        if saved is not None:
+            card.photo_path = str(saved)
     settings = db.settings(user_id)
     template = resolve_template(db, user_id, settings.default_template)
     await state.update_data(
@@ -447,7 +454,7 @@ async def import_from_khl(
         goals=[asdict(goal) for goal in card.goals],
         footer=card.footer.to_dict(),
         note=card.note,
-        photo_path=None,
+        photo_path=card.photo_path,
         caption_override=imported.caption,
     )
     await finish(message, state, db, chrome_path)

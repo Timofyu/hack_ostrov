@@ -68,6 +68,7 @@ class MatchRequest:
 class ImportedMatch:
     card: MatchCard
     caption: str
+    photo_url: str = ""
 
 
 def looks_like_khl_request(text: str) -> bool:
@@ -159,7 +160,20 @@ def match_from_event(event: dict[str, Any]) -> ImportedMatch:
         url=_game_url(event),
         live=state == "in_progress",
     )
-    return ImportedMatch(card=card, caption=caption)
+    return ImportedMatch(card=card, caption=caption, photo_url=match_photo_url(event))
+
+
+def match_photo_url(event: dict[str, Any]) -> str:
+    """Кадр решающей шайбы. Если клипа нет — общий кадр трансляции."""
+    goals = sorted(event.get("goals") or [], key=lambda item: item.get("time") or 0)
+    for goal in reversed(goals):
+        url = str(((goal.get("quote") or {}).get("image_url") or "")).strip()
+        if url.startswith("https://"):
+            return url
+    wide = str(event.get("image_big") or "").strip()
+    if wide.startswith("https://"):
+        return wide
+    return ""
 
 
 def period_lines(scores: dict[str, Any], goals: list[dict[str, Any]], home_id: Any) -> list[str]:

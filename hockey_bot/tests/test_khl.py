@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -7,6 +8,7 @@ from hockeybot.khl import (
     club_key,
     load_match,
     match_from_event,
+    match_photo_url,
     parse_request,
     period_lines,
 )
@@ -138,6 +140,32 @@ def test_event_becomes_protocol_and_card() -> None:
     assert "Гамзин (ЦСКА) — 22 сейва" in imported.caption
     assert "45:11 Дроздов (ЦСКА), 2 мин, подножка" in imported.caption
     assert imported.caption.endswith("https://www.khl.ru/game/1436/902224/resume/")
+
+
+def test_photo_url_prefers_the_latest_goal_frame() -> None:
+    event = {
+        "image_big": "https://cdn.example/wide.jpg",
+        "goals": [
+            {"time": 100, "quote": {"image_url": "https://cdn.example/first.jpg"}},
+            {"time": 400, "quote": {"image_url": "https://cdn.example/winner.jpg"}},
+        ],
+    }
+    assert match_photo_url(event) == "https://cdn.example/winner.jpg"
+    assert match_photo_url({"image_big": "https://cdn.example/wide.jpg", "goals": []}) == "https://cdn.example/wide.jpg"
+    assert match_photo_url({}) == ""
+
+
+def test_broadcast_bar_is_cropped(tmp_path: Path) -> None:
+    from PIL import Image
+
+    from hockeybot.photos import _without_broadcast_bar, download_match_photo
+
+    frame = Image.new("RGB", (1280, 720), (20, 40, 30))
+    cropped = _without_broadcast_bar(frame)
+    assert cropped.size == (1280, int(720 * 0.84))
+    square = Image.new("RGB", (800, 800), (1, 1, 1))
+    assert _without_broadcast_bar(square).size == (800, 800)
+    assert download_match_photo("http://example.com/a.jpg", tmp_path / "nope.jpg") is None
 
 
 def test_load_match_uses_calendar_then_protocol() -> None:

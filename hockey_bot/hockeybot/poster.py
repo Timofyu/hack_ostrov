@@ -141,7 +141,8 @@ def goal_headline(goals: list[Goal]) -> tuple[str, str]:
     name = max(counts, key=lambda scorer: (counts[scorer], -_first_index(goals, scorer)))
     count = counts[name]
     if count < 2:
-        return "", ""
+        last = goals[-1]
+        return last.scorer, last.time
     titles = {2: "дубль", 3: "хет-трик", 4: "покер"}
     title = titles.get(count, f"{count} шайбы")
     tags: list[str] = []
