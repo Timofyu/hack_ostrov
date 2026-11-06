@@ -12,7 +12,7 @@ _MAX_BYTES = 8_000_000
 _BROADCAST_BAR = 0.16
 
 
-def download_match_photo(url: str, dest: Path) -> Path | None:
+def download_match_photo(url: str, dest: Path, crop_broadcast: bool = False) -> Path | None:
     if not url.startswith("https://"):
         return None
     request = urllib.request.Request(
@@ -31,7 +31,8 @@ def download_match_photo(url: str, dest: Path) -> Path | None:
         image.load()
     except (UnidentifiedImageError, OSError):
         return None
-    frame = _without_broadcast_bar(image).convert("RGB")
+    frame = _without_broadcast_bar(image) if crop_broadcast else image
+    frame = frame.convert("RGB")
     dest.parent.mkdir(parents=True, exist_ok=True)
     target = dest.with_suffix(".jpg")
     frame.save(target, "JPEG", quality=90)

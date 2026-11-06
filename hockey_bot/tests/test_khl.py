@@ -168,6 +168,46 @@ def test_broadcast_bar_is_cropped(tmp_path: Path) -> None:
     assert download_match_photo("http://example.com/a.jpg", tmp_path / "nope.jpg") is None
 
 
+def test_social_gallery_beats_a_later_promo() -> None:
+    from datetime import datetime, timezone
+
+    from hockeybot.models import Club
+    from hockeybot.social import ChannelPost, choose_post, parse_telegram_channel
+
+    played = datetime(2026, 11, 5, 13, 30, tzinfo=timezone.utc)
+    cska = Club("ЦСКА", "Москва", "#fff", "#fff", "#000", ("цска",))
+    victory = ChannelPost(
+        10,
+        datetime(2026, 11, 5, 18, 23, tzinfo=timezone.utc),
+        "Победа! Альбом с матча против ЦСКА",
+        ("https://cdn4.telesco.pe/file/a.jpg",) * 6,
+    )
+    promo = ChannelPost(
+        11,
+        datetime(2026, 11, 6, 8, 0, tzinfo=timezone.utc),
+        "Ждём Сибирь, билеты уже в продаже",
+        ("https://cdn4.telesco.pe/file/b.jpg",) * 8,
+    )
+    graphic = ChannelPost(
+        12,
+        datetime(2026, 11, 5, 19, 0, tzinfo=timezone.utc),
+        "Лучший игрок матча против ЦСКА",
+        ("https://cdn4.telesco.pe/file/one.jpg",),
+    )
+    assert choose_post([promo, graphic, victory], cska, played) == victory
+
+    html = """
+    <div class="tgme_widget_message " data-post="omskiyavangard/10">
+      <div class="tgme_widget_message_text">Победа над ЦСКА</div>
+      <a class="tgme_widget_message_photo_wrap" style="background-image:url('https://cdn4.telesco.pe/file/win.jpg')"></a>
+      <time datetime="2026-11-05T18:23:51+00:00"></time>
+    </div>
+    """
+    parsed = parse_telegram_channel(html)
+    assert parsed[0].photos == ("https://cdn4.telesco.pe/file/win.jpg",)
+    assert parsed[0].post_id == 10
+
+
 def test_load_match_uses_calendar_then_protocol() -> None:
     calls: list[str] = []
 

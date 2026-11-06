@@ -29,6 +29,7 @@ from hockeybot.models import Club, Footer, Goal, MatchCard
 from hockeybot.parsing import ParseError, parse_footer, parse_goals, parse_periods, parse_quick, parse_score, parse_when
 from hockeybot.photos import download_match_photo
 from hockeybot.poster import PosterError, render_poster
+from hockeybot.social import find_social_photos
 from hockeybot.states import MatchSG
 from hockeybot.teams import custom_club, find_clubs, resolve_club
 
@@ -431,12 +432,22 @@ async def import_from_khl(
         return
     card = imported.card
     user_id = message.from_user.id if message.from_user else message.chat.id
-    if imported.photo_url:
-        folder = db.path.parent / "uploads"
-        target = folder / f"khl-{user_id}-{int(time.time())}.jpg"
-        saved = await asyncio.to_thread(download_match_photo, imported.photo_url, target)
+    folder = db.path.parent / "uploads"
+    target = folder / f"khl-{user_id}-{int(time.time())}.jpg"
+    social_urls: list[str] = []
+    if imported.played_at is not None:
+        social_urls = await asyncio.to_thread(
+            find_social_photos, card.home, card.away, imported.played_at
+        )
+    saved = None
+    for photo_url in social_urls:
+        saved = await asyncio.to_thread(download_match_photo, photo_url, target, False)
         if saved is not None:
-            card.photo_path = str(saved)
+            break
+    if saved is None and imported.photo_url:
+        saved = await asyncio.to_thread(download_match_photo, imported.photo_url, target, True)
+    if saved is not None:
+        card.photo_path = str(saved)
     settings = db.settings(user_id)
     template = resolve_template(db, user_id, settings.default_template)
     await state.update_data(
