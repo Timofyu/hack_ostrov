@@ -11,6 +11,7 @@ from aiogram.types import CallbackQuery, Message, TelegramObject
 from hockeybot.config import Config, load_config
 from hockeybot.db import Database
 from hockeybot.handlers import setup_routers
+from hockeybot.watch import watch_loop
 
 
 class AccessMiddleware(BaseMiddleware):
@@ -47,6 +48,11 @@ async def run(config: Config) -> None:
     dispatcher.message.middleware(AccessMiddleware(config.allowed_user_ids))
     dispatcher.callback_query.middleware(AccessMiddleware(config.allowed_user_ids))
     dispatcher.include_router(setup_routers())
+
+    async def _start_watch(bot: Bot) -> None:
+        asyncio.create_task(watch_loop(bot, database, config.chrome_path, dispatcher.storage))
+
+    dispatcher.startup.register(_start_watch)
     await dispatcher.start_polling(bot)
 
 

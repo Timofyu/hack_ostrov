@@ -31,6 +31,7 @@ def build_context(card: MatchCard) -> dict[str, str]:
         "note": card.note.strip(),
         "goalie_line": goalie_line(card.footer),
         "tournament": card.tournament,
+        "url": "",
     }
 
 

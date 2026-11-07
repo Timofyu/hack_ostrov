@@ -94,8 +94,29 @@ def done_kb(*, has_channel: bool, kind: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     if has_channel:
         builder.button(text="Опубликовать в канал", callback_data="post:publish")
+    if kind == "result":
+        builder.button(text="Поменять картинку", callback_data="post:photo")
+        builder.button(text="Собрать вручную", callback_data="menu:manual")
     builder.button(text="Другой текст", callback_data=f"post:texts:{kind}")
     builder.button(text="Создать пост", callback_data="menu:create")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def result_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Прислать шаблон", callback_data="result:template")
+    builder.button(text="Собрать по протоколу", callback_data="result:query")
+    builder.button(text="Собрать вручную", callback_data="menu:manual")
+    builder.button(text="Назад", callback_data="menu:create")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def waiting_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Собрать вручную", callback_data="menu:manual")
+    builder.button(text="Не следить", callback_data="watch:stop")
     builder.adjust(1)
     return builder.as_markup()
 

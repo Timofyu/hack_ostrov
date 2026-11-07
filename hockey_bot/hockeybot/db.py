@@ -10,6 +10,16 @@ from hockeybot.templates_lib import PostTemplate
 
 
 @dataclass
+class Watch:
+    id: int
+    owner_id: int
+    chat_id: int
+    query: str
+    created_at: str
+    status: str
+
+
+@dataclass
 class Settings:
     default_template: str = "builtin:result"
     channel_id: str | None = None
@@ -38,6 +48,14 @@ class Database:
                     channel_id TEXT,
                     channel_title TEXT,
                     tournament TEXT NOT NULL DEFAULT 'КХЛ · 26/27'
+                );
+                CREATE TABLE IF NOT EXISTS match_watches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    owner_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    query TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    status TEXT NOT NULL
                 );
                 """
             )
@@ -139,6 +157,80 @@ class Database:
             )
         return cursor.rowcount > 0
 
+    def save_result_template(self, owner_id: int, body: str) -> PostTemplate:
+        settings = self.settings(owner_id)
+        current = self.get_template(owner_id, settings.default_template)
+        if current is not None and current.kind == "result":
+            self.update_body(owner_id, current.id, body)
+            updated = self.get_template(owner_id, current.id)
+            return updated or current
+        created = self.add_template(owner_id, "Итоги матча", "result", body)
+        self.set_default_template(owner_id, created.id)
+        return created
+
+    def add_watch(self, owner_id: int, chat_id: int, query: str) -> tuple[Watch, bool]:
+        query = " ".join(query.split())
+        with self._conn() as conn:
+            row = conn.execute(
+                """
+                SELECT id, owner_id, chat_id, query, created_at, status
+                FROM match_watches
+                WHERE owner_id = ? AND query = ? AND status = 'pending'
+                """,
+                (owner_id, query),
+            ).fetchone()
+            if row is not None:
+                return _watch(row), False
+            created = datetime.now(timezone.utc).isoformat()
+            cursor = conn.execute(
+                """
+                INSERT INTO match_watches (owner_id, chat_id, query, created_at, status)
+                VALUES (?, ?, ?, ?, 'pending')
+                """,
+                (owner_id, chat_id, query, created),
+            )
+            watch_id = int(cursor.lastrowid)
+        return Watch(watch_id, owner_id, chat_id, query, created, "pending"), True
+
+    def pending_watches(self) -> list[Watch]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, owner_id, chat_id, query, created_at, status
+                FROM match_watches
+                WHERE status = 'pending'
+                ORDER BY id
+                """
+            ).fetchall()
+        return [_watch(row) for row in rows]
+
+    def finish_query(self, owner_id: int, query: str, status: str = "done") -> None:
+        query = " ".join(query.split())
+        with self._conn() as conn:
+            conn.execute(
+                """
+                UPDATE match_watches
+                SET status = ?
+                WHERE owner_id = ? AND query = ? AND status = 'pending'
+                """,
+                (status, owner_id, query),
+            )
+
+    def finish_watch(self, watch_id: int, status: str) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE match_watches SET status = ? WHERE id = ? AND status = 'pending'",
+                (status, watch_id),
+            )
+
+    def stop_watches(self, owner_id: int) -> int:
+        with self._conn() as conn:
+            cursor = conn.execute(
+                "UPDATE match_watches SET status = 'stopped' WHERE owner_id = ? AND status = 'pending'",
+                (owner_id,),
+            )
+        return cursor.rowcount
+
     def delete_template(self, owner_id: int, template_id: str) -> bool:
         raw_id = _user_id(template_id)
         if raw_id is None:
@@ -169,6 +261,17 @@ class Database:
             raise
         finally:
             conn.close()
+
+
+def _watch(row: sqlite3.Row) -> Watch:
+    return Watch(
+        id=int(row["id"]),
+        owner_id=int(row["owner_id"]),
+        chat_id=int(row["chat_id"]),
+        query=row["query"],
+        created_at=row["created_at"],
+        status=row["status"],
+    )
 
 
 def _user_id(template_id: str) -> int | None:

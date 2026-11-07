@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from hockeybot.captions import build_context
@@ -30,7 +31,9 @@ BUILTINS: tuple[PostTemplate, ...] = (
             "\n"
             "{goals_block}\n"
             "\n"
-            "{note}"
+            "{note}\n"
+            "\n"
+            "{url}"
         ),
     ),
     PostTemplate(
@@ -85,11 +88,28 @@ PLACEHOLDERS = (
     ("{goalie_line}", "нижняя плашка одной строкой"),
     ("{note}", "сноска"),
     ("{tournament}", "турнир на превью"),
+    ("{url}", "ссылка на протокол"),
 )
 
 
 def builtin(template_id: str) -> PostTemplate | None:
     return _BY_ID.get(template_id)
+
+
+_RESULT_FIELD = re.compile(
+    r"\{(home|away|score|home_score|away_score|goals_block|scorers|when|periods_line)\}"
+)
+
+
+def template_body_ok(body: str) -> str | None:
+    text = body.strip()
+    if len(text) < 8:
+        return "Шаблон слишком короткий."
+    if len(text) > 2000:
+        return "Шаблон длиннее 2000 знаков."
+    if _RESULT_FIELD.search(text) is None:
+        return "В шаблоне нужно поле вроде {home}, {score} или {goals_block}."
+    return None
 
 
 def demo_card() -> MatchCard:

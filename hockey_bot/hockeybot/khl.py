@@ -72,6 +72,8 @@ class ImportedMatch:
     caption: str
     photo_url: str = ""
     played_at: datetime | None = None
+    url: str = ""
+    finished: bool = True
 
 
 def looks_like_khl_request(text: str) -> bool:
@@ -226,6 +228,8 @@ def match_from_event(event: dict[str, Any]) -> ImportedMatch:
         caption=caption,
         photo_url=match_photo_url(event),
         played_at=played_on,
+        url=_game_url(event),
+        finished=state == "finished",
     )
 
 

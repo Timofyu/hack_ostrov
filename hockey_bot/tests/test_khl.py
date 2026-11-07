@@ -144,6 +144,16 @@ def test_event_becomes_protocol_and_card() -> None:
     assert "Гамзин (ЦСКА) — 22 сейва" in imported.caption
     assert "45:11 Дроздов (ЦСКА), 2 мин, подножка" in imported.caption
     assert imported.caption.endswith("https://www.khl.ru/game/1436/902224/resume/")
+    assert imported.finished is True
+    assert imported.url == "https://www.khl.ru/game/1436/902224/resume/"
+
+
+def test_live_match_waits_for_the_final_protocol() -> None:
+    live = dict(EVENT)
+    live["game_state_key"] = "in_progress"
+    imported = match_from_event(live)
+    assert imported.finished is False
+    assert imported.card.note == "Матч ещё идёт"
 
 
 def test_photo_url_prefers_the_latest_goal_frame() -> None:

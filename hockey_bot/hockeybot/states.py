@@ -18,6 +18,15 @@ class DaySG(StatesGroup):
     date = State()
 
 
+class ResultSG(StatesGroup):
+    template = State()
+    query = State()
+
+
+class PostEditSG(StatesGroup):
+    photo = State()
+
+
 class TemplateSG(StatesGroup):
     name = State()
     kind = State()
