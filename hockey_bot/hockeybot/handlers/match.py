@@ -203,8 +203,8 @@ async def khl_from_menu(message: Message, state: FSMContext, db: Database, chrom
     text = message.text or ""
     if not looks_like_khl_request(text):
         await message.answer(
-            "Выбери в меню пост о матче или турнирную таблицу.\n"
-            "Матч можно прислать и так: Авангард ЦСКА 5 ноября 2026",
+            "Нажми «Создать пост» и выбери: таблица, итоги матча или превью дня.\n"
+            "Итоги можно прислать и так: Авангард ЦСКА 5 ноября 2026",
             reply_markup=menu_kb(),
         )
         return

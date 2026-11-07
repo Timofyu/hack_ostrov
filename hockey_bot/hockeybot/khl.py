@@ -90,6 +90,37 @@ def parse_request(text: str, *, today: date | None = None) -> MatchRequest:
     return MatchRequest(left=left, right=right, day=day, year_explicit=year_explicit)
 
 
+def parse_calendar_day(text: str, *, today: date | None = None) -> date:
+    clock = today or datetime.now(MSK).date()
+    raw = " ".join((text or "").split())
+    word = raw.lower().replace("ё", "е")
+    if word == "сегодня":
+        return clock
+    if word == "завтра":
+        return clock + timedelta(days=1)
+    if word == "послезавтра":
+        return clock + timedelta(days=2)
+    match = _DATE_RE.search(word)
+    if not match or match.start() != 0:
+        raise KhlError("Напиши дату: 8 ноября или 08.11.2026")
+    day, _explicit = _request_date(match, clock)
+    return day
+
+
+def games_on(day: date, *, opener: Opener | None = None) -> list[dict[str, Any]]:
+    fetch = opener or _open_json
+    try:
+        events = _events_on(day, fetch)
+    except KhlError:
+        raise
+    except Exception as exc:
+        raise KhlError("Сайт КХЛ сейчас не отвечает. Попробуй ещё раз через минуту.") from exc
+    if not events:
+        events = _historical_events(day, fetch)
+    events.sort(key=lambda event: event.get("start_at") or 0)
+    return events
+
+
 def load_match(text: str, *, today: date | None = None, opener: Opener | None = None) -> ImportedMatch:
     clock = today or datetime.now(MSK).date()
     request = parse_request(text, today=clock)

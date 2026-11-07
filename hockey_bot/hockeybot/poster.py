@@ -11,6 +11,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from hockeybot.daypreview import DaySlate
 from hockeybot.models import Club, Footer, Goal, MatchCard
 from hockeybot.standings import Standings
 
@@ -27,6 +28,30 @@ _ENV = Environment(
 
 class PosterError(RuntimeError):
     pass
+
+
+def render_day(slate: DaySlate, dest: Path, chrome_path: str | None = None) -> Path:
+    chrome = _require_browser(chrome_path)
+    view = {
+        "tournament": slate.tournament,
+        "when": slate.date_label,
+        "count": min(len(slate.games), 8),
+        "games": [
+            {
+                "time": game.time,
+                "home": game.home,
+                "away": game.away,
+                "home_city": game.home_city,
+                "away_city": game.away_city,
+                "home_mark": _hex(game.home_mark, "#d6ff3c"),
+                "away_mark": _hex(game.away_mark, "#8eb6ff"),
+                "score": game.score,
+                "live": game.live,
+            }
+            for game in slate.games
+        ],
+    }
+    return _paint("day.html", view, dest, chrome)
 
 
 def render_table(board: Standings, dest: Path, chrome_path: str | None = None) -> Path:

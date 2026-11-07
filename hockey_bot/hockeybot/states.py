@@ -14,6 +14,10 @@ class MatchSG(StatesGroup):
     quick = State()
 
 
+class DaySG(StatesGroup):
+    date = State()
+
+
 class TemplateSG(StatesGroup):
     name = State()
     kind = State()

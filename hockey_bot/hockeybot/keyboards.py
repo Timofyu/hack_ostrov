@@ -11,11 +11,39 @@ from hockeybot.templates_lib import PostTemplate
 
 def menu_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="Пост о матче", callback_data="menu:match")
-    builder.button(text="Турнирная таблица", callback_data="menu:table")
+    builder.button(text="Создать пост", callback_data="menu:create")
     builder.button(text="Шаблоны", callback_data="menu:templates")
     builder.button(text="Канал", callback_data="menu:channel")
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def create_post_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Таблица", callback_data="menu:table")
+    builder.button(text="Итоги матча", callback_data="menu:match")
+    builder.button(text="Превью дня", callback_data="menu:day")
+    builder.button(text="В меню", callback_data="menu:home")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def day_done_kb(*, has_channel: bool) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    if has_channel:
+        builder.button(text="Опубликовать в канал", callback_data="post:publish")
+    builder.button(text="Другой день", callback_data="menu:day")
+    builder.button(text="Создать пост", callback_data="menu:create")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def day_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Сегодня", callback_data="day:today")
+    builder.button(text="Завтра", callback_data="day:tomorrow")
+    builder.button(text="Назад", callback_data="menu:create")
+    builder.adjust(2, 1)
     return builder.as_markup()
 
 
@@ -35,7 +63,7 @@ def table_done_kb(*, has_channel: bool) -> InlineKeyboardMarkup:
     if has_channel:
         builder.button(text="Опубликовать в канал", callback_data="post:publish")
     builder.button(text="Другая таблица", callback_data="menu:table")
-    builder.button(text="Пост о матче", callback_data="menu:match")
+    builder.button(text="Создать пост", callback_data="menu:create")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -67,7 +95,7 @@ def done_kb(*, has_channel: bool, kind: str) -> InlineKeyboardMarkup:
     if has_channel:
         builder.button(text="Опубликовать в канал", callback_data="post:publish")
     builder.button(text="Другой текст", callback_data=f"post:texts:{kind}")
-    builder.button(text="Пост о матче", callback_data="menu:match")
+    builder.button(text="Создать пост", callback_data="menu:create")
     builder.adjust(1)
     return builder.as_markup()
 
