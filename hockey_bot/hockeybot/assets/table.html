@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>{{ tournament }}</title>
+<style>
+  @font-face {
+    font-family: "Unbounded";
+    src: url("fonts/Unbounded.ttf") format("truetype");
+    font-weight: 200 900;
+    font-style: normal;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-SemiBold.ttf") format("truetype");
+    font-weight: 600;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-Bold.ttf") format("truetype");
+    font-weight: 700;
+    font-display: block;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1350px;
+    overflow: hidden;
+    background: #07110c;
+    color: #f4f7ef;
+    font-family: "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .poster {
+    width: 1080px;
+    height: 1350px;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 32px 26px;
+    background:
+      radial-gradient(520px 280px at 12% 0%, rgba(214, 255, 60, 0.14), transparent 70%),
+      radial-gradient(480px 280px at 100% 8%, rgba(142, 182, 255, 0.12), transparent 72%),
+      #07110c;
+  }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(7, 17, 12, 0.78);
+    color: #f4f7ef;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .mark { width: 14px; height: 14px; flex: none; }
+
+  .stage {
+    margin-top: 22px;
+    font-family: "Unbounded", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .columns {
+    flex: 1;
+    display: flex;
+    gap: 28px;
+    margin-top: 22px;
+    min-height: 0;
+  }
+  .conf {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .conf h2 {
+    font-family: "Unbounded", sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .west h2, .west .pts { color: #d6ff3c; }
+  .east h2, .east .pts { color: #8eb6ff; }
+
+  .head, .row {
+    display: grid;
+    align-items: center;
+    column-gap: 8px;
+  }
+  .pair .head, .pair .row {
+    grid-template-columns: 32px minmax(0, 1fr) 36px 62px 42px;
+  }
+  .single .head, .single .row {
+    grid-template-columns: 36px minmax(0, 1fr) 36px 32px 32px 32px 32px 32px 32px 70px 46px;
+  }
+  .head {
+    color: #5e7568;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding-bottom: 6px;
+  }
+  .rows { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .row {
+    flex: 1;
+    min-height: 0;
+    border-top: 1px solid rgba(244, 247, 239, 0.08);
+  }
+  .row.cut { border-top: 1px solid rgba(214, 255, 60, 0.55); }
+  .east .row.cut { border-top-color: rgba(142, 182, 255, 0.55); }
+  .row.out .rank, .row.out .club b, .row.out .n { color: #8ea396; }
+
+  .rank {
+    font-family: "Unbounded", sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .club {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .club i {
+    width: 4px;
+    height: 28px;
+    flex: none;
+  }
+  .club span { min-width: 0; }
+  .club b, .club small {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .club b {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .single .club b { font-size: 20px; }
+  .club small {
+    margin-top: 1px;
+    color: #8ea396;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .n, .pts { text-align: right; font-variant-numeric: tabular-nums; }
+  .n { font-size: 14px; font-weight: 600; }
+  .single .n { font-size: 16px; }
+  .goals { color: #8ea396; font-size: 13px; }
+  .pts {
+    font-family: "Unbounded", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .single .pts { font-size: 22px; }
+  .pair .extra { display: none; }
+  .single .pair-only { display: none; }
+
+  .foot {
+    margin-top: 12px;
+    color: #8ea396;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="poster">
+    <header class="top">
+      <div class="chip">
+        <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="#d6ff3c" />
+        </svg>
+        <span>{{ tournament }}</span>
+      </div>
+      <div class="chip">{{ as_of }}</div>
+    </header>
+    <div class="stage">{{ stage }}</div>
+    <div class="columns {{ 'single' if single else 'pair' }}">
+      {% for conference in conferences %}
+      <section class="conf {{ conference.key }}">
+        <h2>{{ conference.title }}</h2>
+        <div class="head">
+          <span>#</span>
+          <span>Клуб</span>
+          <span>И</span>
+          <span class="extra">В</span>
+          <span class="extra">ВО</span>
+          <span class="extra">ВБ</span>
+          <span class="extra">ПБ</span>
+          <span class="extra">ПО</span>
+          <span class="extra">П</span>
+          <span class="pair-only">Шайбы</span>
+          <span class="extra">Шайбы</span>
+          <span>О</span>
+        </div>
+        <div class="rows">
+          {% for row in conference.rows %}
+          <div class="row{% if row.cut %} cut{% endif %}{% if not row.playoff %} out{% endif %}">
+            <span class="rank">{{ row.rank }}</span>
+            <span class="club">
+              <i style="background: {{ row.mark }}"></i>
+              <span>
+                <b>{{ row.name }}</b>
+                <small>{{ row.city }}</small>
+              </span>
+            </span>
+            <span class="n">{{ row.played }}</span>
+            <span class="n extra">{{ row.wins }}</span>
+            <span class="n extra">{{ row.ot_wins }}</span>
+            <span class="n extra">{{ row.so_wins }}</span>
+            <span class="n extra">{{ row.so_losses }}</span>
+            <span class="n extra">{{ row.ot_losses }}</span>
+            <span class="n extra">{{ row.losses }}</span>
+            <span class="n goals pair-only">{{ row.goals }}</span>
+            <span class="n goals extra">{{ row.goals }}</span>
+            <span class="pts">{{ row.points }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+    {% if playoff_note %}
+    <div class="foot">Линия после 8-го места — плей-офф</div>
+    {% endif %}
+  </div>
+</body>
+</html>

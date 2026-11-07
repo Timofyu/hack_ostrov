@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Превью дня</title>
+<style>
+  @font-face {
+    font-family: "Unbounded";
+    src: url("fonts/Unbounded.ttf") format("truetype");
+    font-weight: 200 900;
+    font-style: normal;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-SemiBold.ttf") format("truetype");
+    font-weight: 600;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-Bold.ttf") format("truetype");
+    font-weight: 700;
+    font-display: block;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1080px;
+    height: 1350px;
+    overflow: hidden;
+    background: #07110c;
+    color: #f4f7ef;
+    font-family: "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .poster {
+    width: 1080px;
+    height: 1350px;
+    display: flex;
+    flex-direction: column;
+    padding: 36px 40px 32px;
+    background:
+      radial-gradient(560px 300px at 8% 0%, rgba(214, 255, 60, 0.16), transparent 70%),
+      #07110c;
+  }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(7, 17, 12, 0.78);
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .mark { width: 14px; height: 14px; flex: none; }
+
+  h1 {
+    margin-top: 28px;
+    font-family: "Unbounded", sans-serif;
+    font-size: 64px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 0.95;
+  }
+  .count-5 h1, .count-6 h1, .count-7 h1, .count-8 h1 { font-size: 48px; }
+
+  .games {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: 28px;
+    min-height: 0;
+  }
+  .game {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 18px;
+    border-top: 1px solid rgba(244, 247, 239, 0.12);
+    min-height: 0;
+  }
+  .time {
+    font-family: "Unbounded", sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #d6ff3c;
+  }
+  .count-5 .time, .count-6 .time, .count-7 .time, .count-8 .time { font-size: 24px; }
+  .side { min-width: 0; }
+  .side.away { text-align: right; }
+  .side b, .side small {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .side b {
+    font-family: "Unbounded", sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .count-5 .side b, .count-6 .side b, .count-7 .side b, .count-8 .side b { font-size: 20px; }
+  .side small {
+    margin-top: 4px;
+    color: #8ea396;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .name {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+  }
+  .away .name { flex-direction: row-reverse; }
+  .bar { width: 4px; height: 28px; flex: none; }
+  .mid {
+    font-family: "Unbounded", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #8ea396;
+    text-align: center;
+  }
+  .mid.score { color: #f4f7ef; font-size: 34px; }
+  .live {
+    display: block;
+    margin-top: 4px;
+    color: #d6ff3c;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+  }
+</style>
+</head>
+<body>
+  <div class="poster count-{{ count }}">
+    <header class="top">
+      <div class="chip">
+        <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="#d6ff3c" />
+        </svg>
+        <span>{{ tournament }}</span>
+      </div>
+      <div class="chip">{{ when }}</div>
+    </header>
+    <h1>Превью дня</h1>
+    <div class="games">
+      {% for game in games %}
+      <article class="game">
+        <div class="time">{{ game.time }}</div>
+        <div class="side">
+          <span class="name">
+            <i class="bar" style="background: {{ game.home_mark }}"></i>
+            <span>
+              <b>{{ game.home }}</b>
+              <small>{{ game.home_city }}</small>
+            </span>
+          </span>
+        </div>
+        <div class="mid{% if game.score %} score{% endif %}">
+          {{ game.score or "—" }}
+          {% if game.live %}<span class="live">ИДЁТ</span>{% endif %}
+        </div>
+        <div class="side away">
+          <span class="name">
+            <i class="bar" style="background: {{ game.away_mark }}"></i>
+            <span>
+              <b>{{ game.away }}</b>
+              <small>{{ game.away_city }}</small>
+            </span>
+          </span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>
