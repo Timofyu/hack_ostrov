@@ -11,9 +11,31 @@ from hockeybot.templates_lib import PostTemplate
 
 def menu_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="Новый матч", callback_data="menu:match")
+    builder.button(text="Пост о матче", callback_data="menu:match")
+    builder.button(text="Турнирная таблица", callback_data="menu:table")
     builder.button(text="Шаблоны", callback_data="menu:templates")
     builder.button(text="Канал", callback_data="menu:channel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def table_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Запад и Восток", callback_data="table:both")
+    builder.button(text="Только Запад", callback_data="table:west")
+    builder.button(text="Только Восток", callback_data="table:east")
+    builder.button(text="Прошлый сезон", callback_data="table:previous")
+    builder.button(text="В меню", callback_data="menu:home")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def table_done_kb(*, has_channel: bool) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    if has_channel:
+        builder.button(text="Опубликовать в канал", callback_data="post:publish")
+    builder.button(text="Другая таблица", callback_data="menu:table")
+    builder.button(text="Пост о матче", callback_data="menu:match")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -45,7 +67,7 @@ def done_kb(*, has_channel: bool, kind: str) -> InlineKeyboardMarkup:
     if has_channel:
         builder.button(text="Опубликовать в канал", callback_data="post:publish")
     builder.button(text="Другой текст", callback_data=f"post:texts:{kind}")
-    builder.button(text="Новый матч", callback_data="menu:match")
+    builder.button(text="Пост о матче", callback_data="menu:match")
     builder.adjust(1)
     return builder.as_markup()
 

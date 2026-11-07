@@ -203,7 +203,8 @@ async def khl_from_menu(message: Message, state: FSMContext, db: Database, chrom
     text = message.text or ""
     if not looks_like_khl_request(text):
         await message.answer(
-            "Напиши встречу и дату одной строкой:\nАвангард ЦСКА 5 ноября 2026",
+            "Выбери в меню пост о матче или турнирную таблицу.\n"
+            "Матч можно прислать и так: Авангард ЦСКА 5 ноября 2026",
             reply_markup=menu_kb(),
         )
         return
@@ -326,7 +327,7 @@ async def publish(callback: CallbackQuery, state: FSMContext, db: Database) -> N
     post = data.get("last_post")
     settings = db.settings(callback.from_user.id)
     if not post:
-        await callback.answer("Сначала собери матч", show_alert=True)
+        await callback.answer("Сначала собери пост", show_alert=True)
         return
     if not settings.channel_id:
         await callback.answer("Сначала привяжи канал", show_alert=True)

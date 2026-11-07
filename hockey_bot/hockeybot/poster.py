@@ -12,6 +12,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from hockeybot.models import Club, Footer, Goal, MatchCard
+from hockeybot.standings import Standings
 
 ASSETS = Path(__file__).resolve().parent / "assets"
 FONTS = ASSETS / "fonts"
@@ -28,7 +29,64 @@ class PosterError(RuntimeError):
     pass
 
 
+def render_table(board: Standings, dest: Path, chrome_path: str | None = None) -> Path:
+    chrome = _require_browser(chrome_path)
+    view = {
+        "tournament": board.tournament,
+        "stage": board.stage,
+        "as_of": board.as_of,
+        "single": len(board.conferences) == 1,
+        "playoff_note": any(len(conference.rows) > 8 for conference in board.conferences),
+        "conferences": [
+            {
+                "key": conference.key,
+                "title": conference.title,
+                "rows": [
+                    {
+                        "rank": row.rank,
+                        "name": row.name,
+                        "city": row.city,
+                        "mark": _hex(row.mark, "#d6ff3c"),
+                        "played": row.played,
+                        "wins": row.wins,
+                        "ot_wins": row.ot_wins,
+                        "so_wins": row.so_wins,
+                        "so_losses": row.so_losses,
+                        "ot_losses": row.ot_losses,
+                        "losses": row.losses,
+                        "goals": f"{row.goals_for}–{row.goals_against}",
+                        "points": row.points,
+                        "playoff": row.playoff,
+                        "cut": row.rank == 9,
+                    }
+                    for row in conference.rows
+                ],
+            }
+            for conference in board.conferences
+        ],
+    }
+    return _paint("table.html", view, dest, chrome)
+
+
 def render_poster(card: MatchCard, dest: Path, chrome_path: str | None = None) -> Path:
+    chrome = _require_browser(chrome_path)
+    view = build_view(card)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="hockey-poster-") as tmp_name:
+        tmp = Path(tmp_name)
+        if card.photo_path:
+            source = Path(card.photo_path)
+            if not source.is_file():
+                raise PosterError("Файл фото не найден. Пришли кадр ещё раз.")
+            suffix = source.suffix.lower() if source.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} else ".jpg"
+            photo_name = f"photo{suffix}"
+            shutil.copy(source, tmp / photo_name)
+            view["photo_name"] = photo_name
+        return _paint("poster.html", view, dest, chrome, tmp)
+
+
+def _require_browser(chrome_path: str | None) -> str:
     chrome = chrome_path or find_chrome()
     if not chrome:
         raise PosterError(
@@ -39,26 +97,20 @@ def render_poster(card: MatchCard, dest: Path, chrome_path: str | None = None) -
     missing = [name for name in ("Unbounded.ttf", "Inter-Regular.ttf", "Inter-Bold.ttf") if not (FONTS / name).exists()]
     if missing:
         raise PosterError("В комплекте бота не хватает шрифтов: " + ", ".join(missing))
+    return chrome
 
-    view = build_view(card)
+
+def _paint(template: str, view: dict, dest: Path, chrome: str, tmp: Path | None = None) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
-
-    with tempfile.TemporaryDirectory(prefix="hockey-poster-") as tmp_name:
-        tmp = Path(tmp_name)
-        _link_fonts(tmp / "fonts")
-        if card.photo_path:
-            source = Path(card.photo_path)
-            if not source.is_file():
-                raise PosterError("Файл фото не найден. Пришли кадр ещё раз.")
-            suffix = source.suffix.lower() if source.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} else ".jpg"
-            photo_name = f"photo{suffix}"
-            shutil.copy(source, tmp / photo_name)
-            view["photo_name"] = photo_name
-        html = _ENV.get_template("poster.html").render(**view)
-        (tmp / "index.html").write_text(html, encoding="utf-8")
-        png = tmp / "poster.png"
-        _screenshot(tmp / "index.html", png, chrome)
-        dest.write_bytes(png.read_bytes())
+    if tmp is None:
+        with tempfile.TemporaryDirectory(prefix="hockey-poster-") as tmp_name:
+            return _paint(template, view, dest, chrome, Path(tmp_name))
+    _link_fonts(tmp / "fonts")
+    html = _ENV.get_template(template).render(**view)
+    (tmp / "index.html").write_text(html, encoding="utf-8")
+    png = tmp / "poster.png"
+    _screenshot(tmp / "index.html", png, chrome)
+    dest.write_bytes(png.read_bytes())
     return dest
 
 
