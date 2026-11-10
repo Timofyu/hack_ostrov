@@ -112,10 +112,10 @@
     column-gap: 8px;
   }
   .pair .head, .pair .row {
-    grid-template-columns: 32px minmax(0, 1fr) 36px 62px 42px;
+    grid-template-columns: 42px minmax(0, 1fr) 36px 62px 48px;
   }
   .single .head, .single .row {
-    grid-template-columns: 36px minmax(0, 1fr) 36px 32px 32px 32px 32px 32px 32px 70px 46px;
+    grid-template-columns: 46px minmax(0, 1fr) 36px 32px 32px 32px 32px 32px 32px 70px 52px;
   }
   .head {
     color: #5e7568;
@@ -150,6 +150,21 @@
     width: 4px;
     height: 28px;
     flex: none;
+  }
+  .crest { width: 22px; height: 22px; object-fit: contain; flex: none; }
+  .single .crest { width: 28px; height: 28px; }
+  .rank { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; gap: 2px; }
+  .rank small { font-family: "Inter", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0; }
+  .move.up { color: #d6ff3c; }
+  .move.down { color: #ff6b78; }
+  .move.flat { color: #5e7568; }
+  .pts small {
+    display: block;
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #8ea396;
   }
   .club span { min-width: 0; }
   .club b, .club small {
@@ -229,9 +244,13 @@
         <div class="rows">
           {% for row in conference.rows %}
           <div class="row{% if row.cut %} cut{% endif %}{% if not row.playoff %} out{% endif %}">
-            <span class="rank">{{ row.rank }}</span>
+            <span class="rank">{{ row.rank }}{% if row.move_label %}<small class="move {{ row.move_class }}">{{ row.move_label }}</small>{% endif %}</span>
             <span class="club">
-              <i style="background: {{ row.mark }}"></i>
+              {% if row.logo %}
+                <img class="crest" src="logos/{{ row.logo }}" alt="" />
+              {% else %}
+                <i style="background: {{ row.mark }}"></i>
+              {% endif %}
               <span>
                 <b>{{ row.name }}</b>
                 <small>{{ row.city }}</small>
@@ -246,7 +265,7 @@
             <span class="n extra">{{ row.losses }}</span>
             <span class="n goals pair-only">{{ row.goals }}</span>
             <span class="n goals extra">{{ row.goals }}</span>
-            <span class="pts">{{ row.points }}</span>
+            <span class="pts">{{ row.points }}{% if row.points_label %}<small>{{ row.points_label }}</small>{% endif %}</span>
           </div>
           {% endfor %}
         </div>

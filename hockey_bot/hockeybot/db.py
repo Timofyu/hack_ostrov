@@ -57,6 +57,14 @@ class Database:
                     created_at TEXT NOT NULL,
                     status TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS table_snapshots (
+                    season TEXT NOT NULL,
+                    day TEXT NOT NULL,
+                    conference TEXT NOT NULL,
+                    club TEXT NOT NULL,
+                    rank INTEGER NOT NULL,
+                    points INTEGER NOT NULL
+                );
                 """
             )
 
@@ -222,6 +230,40 @@ class Database:
                 "UPDATE match_watches SET status = ? WHERE id = ? AND status = 'pending'",
                 (status, watch_id),
             )
+
+    def save_table_snapshot(self, season: str, day: str, rows: list[tuple[str, str, int, int]]) -> None:
+        with self._conn() as conn:
+            conn.execute("DELETE FROM table_snapshots WHERE season = ? AND day = ?", (season, day))
+            conn.executemany(
+                """
+                INSERT INTO table_snapshots (season, day, conference, club, rank, points)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [(season, day, conference, club, rank, points) for conference, club, rank, points in rows],
+            )
+
+    def previous_table(self, season: str, before_day: str) -> dict[tuple[str, str], tuple[int, int]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                """
+                SELECT day FROM table_snapshots
+                WHERE season = ? AND day < ?
+                ORDER BY day DESC
+                LIMIT 1
+                """,
+                (season, before_day),
+            ).fetchone()
+            if row is None:
+                return {}
+            found = conn.execute(
+                """
+                SELECT conference, club, rank, points
+                FROM table_snapshots
+                WHERE season = ? AND day = ?
+                """,
+                (season, row["day"]),
+            ).fetchall()
+        return {(item["conference"], item["club"]): (int(item["rank"]), int(item["points"])) for item in found}
 
     def stop_watches(self, owner_id: int) -> int:
         with self._conn() as conn:

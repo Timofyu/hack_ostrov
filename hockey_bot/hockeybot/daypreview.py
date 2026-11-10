@@ -28,11 +28,12 @@ class DaySlate:
     tournament: str
     date_label: str
     year: int
+    title: str
     games: tuple[DayGame, ...]
     caption: str
 
 
-def load_day(day: date, *, opener=None) -> DaySlate:
+def load_day(day: date, *, opener=None, results: bool = False) -> DaySlate:
     events = games_on(day, opener=opener)
     if not events:
         raise KhlError(f"На {_russian_date(day)} {day.year} в календаре КХЛ нет матчей.")
@@ -40,12 +41,15 @@ def load_day(day: date, *, opener=None) -> DaySlate:
     stage = str(events[0].get("stage_name") or "")
     tournament = _tournament(stage)
     label = _russian_date(day)
+    title = "Итоги дня" if results else "Превью дня"
+    caption = _results_caption(label, day.year, games) if results else _caption(tournament, label, day.year, games)
     return DaySlate(
         tournament=tournament,
         date_label=label,
         year=day.year,
+        title=title,
         games=games,
-        caption=_caption(tournament, label, day.year, games),
+        caption=caption,
     )
 
 
@@ -78,6 +82,17 @@ def _caption(tournament: str, label: str, year: int, games: tuple[DayGame, ...])
         tail = f", {game.place}" if game.place else ""
         live = " · идёт" if game.live else ""
         lines.append(f"{game.time} {game.home} — {game.away}{middle}{tail}{live}".strip())
+    return "\n".join(lines).strip()
+
+
+def _results_caption(label: str, year: int, games: tuple[DayGame, ...]) -> str:
+    lines = ["Итоги дня", f"{label} {year}", ""]
+    for game in games:
+        if game.score:
+            live = " · идёт" if game.live else ""
+            lines.append(f"{game.home} {game.score} {game.away}{live}")
+        else:
+            lines.append(f"{game.time} {game.home} — {game.away}".strip())
     return "\n".join(lines).strip()
 
 

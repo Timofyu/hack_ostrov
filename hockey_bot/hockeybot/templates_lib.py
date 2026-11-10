@@ -22,19 +22,7 @@ BUILTINS: tuple[PostTemplate, ...] = (
         name="Итог матча",
         kind="result",
         builtin=True,
-        body=(
-            "{home} — {away}\n"
-            "{score}\n"
-            "\n"
-            "{when}\n"
-            "{periods_line}\n"
-            "\n"
-            "{goals_block}\n"
-            "\n"
-            "{note}\n"
-            "\n"
-            "{url}"
-        ),
+        body="{home} {score} {away}\n{when}\n\n{scorers}",
     ),
     PostTemplate(
         id="builtin:short",

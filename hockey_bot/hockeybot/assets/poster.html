@@ -190,8 +190,16 @@
   }
   .kicker.guest { color: var(--away); }
 
-  .team {
+  .teamrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-top: 6px;
+  }
+  .teamrow.away { flex-direction: row-reverse; }
+  .crest { width: 52px; height: 52px; object-fit: contain; flex: none; }
+  .crest.sm { width: 36px; height: 36px; }
+  .team {
     font-family: "Unbounded", sans-serif;
     font-weight: 800;
     line-height: 0.92;
@@ -259,6 +267,9 @@
   .guestline { margin-top: auto; padding-top: 14px; }
   .opp {
     margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-family: "Unbounded", sans-serif;
     font-weight: 600;
     font-size: 18px;
@@ -457,9 +468,12 @@
   </header>
 {% endmacro %}
 
-{% macro team_block(lines, size, away) %}
-  <div class="team {{ size }}{% if away %} away{% endif %}">
-    {% for line in lines %}{{ line }}{% if not loop.last %}<br />{% endif %}{% endfor %}
+{% macro team_block(lines, size, away, logo) %}
+  <div class="teamrow{% if away %} away{% endif %}">
+    {% if logo %}<img class="crest" src="logos/{{ logo }}" alt="" />{% endif %}
+    <div class="team {{ size }}{% if away %} away{% endif %}">
+      {% for line in lines %}{{ line }}{% if not loop.last %}<br />{% endif %}{% endfor %}
+    </div>
   </div>
 {% endmacro %}
 
@@ -529,13 +543,13 @@
     <section class="sheet{% if not goals %} solo{% endif %}">
       <div class="identity">
         <div class="kicker">Хозяева льда</div>
-        {{ team_block(home_lines, home_size, false) }}
+        {{ team_block(home_lines, home_size, false, home_logo) }}
         {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
         {{ score_row() }}
         {{ period_row() }}
         <div class="guestline">
           <div class="kicker guest">Гости</div>
-          <div class="opp">{{ guest_line }}</div>
+          <div class="opp">{% if away_logo %}<img class="crest sm" src="logos/{{ away_logo }}" alt="" />{% endif %}<span>{{ guest_line }}</span></div>
         </div>
         {% if note and not goals %}<div class="note">{{ note }}</div>{% endif %}
       </div>
@@ -554,13 +568,13 @@
       {{ chip_row(true) }}
       <div class="scorestage">
         <div class="kicker" style="margin-top: 28px;">Хозяева льда</div>
-        {{ team_block(home_lines, home_size, false) }}
+        {{ team_block(home_lines, home_size, false, home_logo) }}
         {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
         {{ score_row() }}
         {{ period_row() }}
         <div class="guestline" style="margin-top: 22px;">
           <div class="kicker guest">Гости</div>
-          <div class="opp">{{ guest_line }}</div>
+          <div class="opp">{% if away_logo %}<img class="crest sm" src="logos/{{ away_logo }}" alt="" />{% endif %}<span>{{ guest_line }}</span></div>
         </div>
       </div>
       {% if goals %}
@@ -581,10 +595,10 @@
     <div class="seam"></div>
     <section class="announce-sheet">
       <div class="kicker">Анонс</div>
-      {{ team_block(home_lines, home_size, false) }}
+      {{ team_block(home_lines, home_size, false, home_logo) }}
       {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
       <div class="vs">VS</div>
-      {{ team_block(away_lines, away_size, true) }}
+      {{ team_block(away_lines, away_size, true, away_logo) }}
       {% if away_city %}<div class="city">{{ away_city }}</div>{% endif %}
       {% if date or arena %}
         <div class="whenbig">{{ date }}{% if arena %}<span>{{ arena }}</span>{% endif %}</div>
@@ -597,10 +611,10 @@
       {{ chip_row(true) }}
       <div class="ann-main">
         <div class="kicker">Анонс</div>
-        {{ team_block(home_lines, home_size, false) }}
+        {{ team_block(home_lines, home_size, false, home_logo) }}
         {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
         <div class="vs">VS</div>
-        {{ team_block(away_lines, away_size, true) }}
+        {{ team_block(away_lines, away_size, true, away_logo) }}
         {% if away_city %}<div class="city">{{ away_city }}</div>{% endif %}
         {% if date or arena %}
           <div class="whenbig">{{ date }}{% if arena %}<span>{{ arena }}</span>{% endif %}</div>

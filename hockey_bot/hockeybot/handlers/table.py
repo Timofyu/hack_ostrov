@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import datetime
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -12,14 +13,15 @@ from hockeybot.db import Database
 from hockeybot.keyboards import table_done_kb, table_kb
 from hockeybot.khl import KhlError
 from hockeybot.poster import PosterError, render_table
-from hockeybot.standings import load_standings
+from hockeybot.standings import MSK, apply_movement, load_standings, snapshot_rows
 
 router = Router(name="table")
 
 _PROMPT = (
     "Турнирная таблица КХЛ.\n\n"
     "Запад и Восток — текущий регулярный чемпионат. "
-    "Можно взять одну конференцию или таблицу прошлого сезона."
+    "У места стрелка, у очков прибавка: сравнение с таблицей прошлого дня, которую бот уже собирал. "
+    "В первый день стрелок ещё нет. Можно взять одну конференцию или таблицу прошлого сезона."
 )
 
 
@@ -40,6 +42,10 @@ async def build_table(callback: CallbackQuery, state: FSMContext, db: Database, 
     except KhlError as exc:
         await callback.message.answer(str(exc), reply_markup=table_kb())
         return
+    if scope != "previous":
+        day = datetime.now(MSK).date().isoformat()
+        board = apply_movement(board, db.previous_table(board.season, day))
+        db.save_table_snapshot(board.season, day, snapshot_rows(board))
     user_id = callback.from_user.id
     dest = db.path.parent / "renders" / f"table-{user_id}-{int(time.time())}.png"
     try:

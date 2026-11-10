@@ -66,6 +66,10 @@ def test_finished_day_keeps_the_score() -> None:
     slate = load_day(date(2026, 11, 5), opener=opener)
     assert slate.games[0].score == "2:1"
     assert "2:1" in slate.caption
+    results = load_day(date(2026, 11, 5), opener=opener, results=True)
+    assert results.title == "Итоги дня"
+    assert "ЦСКА 2:1 СКА" in results.caption
+    assert "Превью" not in results.caption
 
 
 def test_empty_day_is_an_error() -> None:

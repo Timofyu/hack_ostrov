@@ -45,5 +45,5 @@ def test_template_caption_keeps_protocol_link() -> None:
     assert text == "Салават Юлаев 5:0\nhttps://www.khl.ru/game/1436/902224/resume/"
     assert render_caption("{url}", build_context(demo_card())) == ""
     preview = render_caption(builtin("builtin:result").body, demo_context())
-    assert "Салават Юлаев — Лада" in preview
+    assert "Салават Юлаев 5:0 Лада" in preview
     assert "http" not in preview

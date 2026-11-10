@@ -20,19 +20,20 @@ def menu_kb() -> InlineKeyboardMarkup:
 
 def create_post_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="Таблица", callback_data="menu:table")
     builder.button(text="Итоги матча", callback_data="menu:match")
+    builder.button(text="Итоги дня", callback_data="menu:results")
+    builder.button(text="Таблица", callback_data="menu:table")
     builder.button(text="Превью дня", callback_data="menu:day")
     builder.button(text="В меню", callback_data="menu:home")
     builder.adjust(1)
     return builder.as_markup()
 
 
-def day_done_kb(*, has_channel: bool) -> InlineKeyboardMarkup:
+def day_done_kb(*, has_channel: bool, results: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     if has_channel:
         builder.button(text="Опубликовать в канал", callback_data="post:publish")
-    builder.button(text="Другой день", callback_data="menu:day")
+    builder.button(text="Другой день", callback_data="menu:results" if results else "menu:day")
     builder.button(text="Создать пост", callback_data="menu:create")
     builder.adjust(1)
     return builder.as_markup()

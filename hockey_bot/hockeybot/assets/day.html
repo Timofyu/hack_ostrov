@@ -138,6 +138,8 @@
   }
   .away .name { flex-direction: row-reverse; }
   .bar { width: 4px; height: 28px; flex: none; }
+  .crest { width: 40px; height: 40px; object-fit: contain; flex: none; }
+  .count-5 .crest, .count-6 .crest, .count-7 .crest, .count-8 .crest { width: 30px; height: 30px; }
   .mid {
     font-family: "Unbounded", sans-serif;
     font-size: 28px;
@@ -168,14 +170,18 @@
       </div>
       <div class="chip">{{ when }}</div>
     </header>
-    <h1>Превью дня</h1>
+    <h1>{{ title }}</h1>
     <div class="games">
       {% for game in games %}
       <article class="game">
         <div class="time">{{ game.time }}</div>
         <div class="side">
           <span class="name">
-            <i class="bar" style="background: {{ game.home_mark }}"></i>
+            {% if game.home_logo %}
+              <img class="crest" src="logos/{{ game.home_logo }}" alt="" />
+            {% else %}
+              <i class="bar" style="background: {{ game.home_mark }}"></i>
+            {% endif %}
             <span>
               <b>{{ game.home }}</b>
               <small>{{ game.home_city }}</small>
@@ -188,7 +194,11 @@
         </div>
         <div class="side away">
           <span class="name">
-            <i class="bar" style="background: {{ game.away_mark }}"></i>
+            {% if game.away_logo %}
+              <img class="crest" src="logos/{{ game.away_logo }}" alt="" />
+            {% else %}
+              <i class="bar" style="background: {{ game.away_mark }}"></i>
+            {% endif %}
             <span>
               <b>{{ game.away }}</b>
               <small>{{ game.away_city }}</small>

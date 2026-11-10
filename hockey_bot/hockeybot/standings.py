@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 
 from hockeybot.khl import KhlError, _open_json, club_from_api
+from hockeybot.teams import normalize_name
 
 MSK = timezone(timedelta(hours=3))
 TABLES_URLS = (
@@ -45,6 +46,8 @@ class TableRow:
     ot_losses: int
     losses: int
     playoff: bool
+    move: int | None = None
+    points_delta: int | None = None
 
 
 @dataclass(frozen=True)
@@ -163,13 +166,48 @@ def _row(rank: int, raw: dict) -> TableRow:
     )
 
 
+def apply_movement(board: Standings, previous: dict[tuple[str, str], tuple[int, int]]) -> Standings:
+    """previous: (конференция, клуб) -> (место, очки) за прошлый сохранённый день."""
+    if not previous:
+        return board
+    conferences: list[Conference] = []
+    for conference in board.conferences:
+        rows: list[TableRow] = []
+        for row in conference.rows:
+            old = previous.get((conference.key, normalize_name(row.name)))
+            move = None if old is None else old[0] - row.rank
+            delta = None if old is None else row.points - old[1]
+            rows.append(replace(row, move=move, points_delta=delta))
+        conferences.append(replace(conference, rows=tuple(rows)))
+    updated = replace(board, conferences=tuple(conferences))
+    return replace(
+        updated,
+        caption=_caption(updated.tournament, updated.stage, updated.as_of, updated.conferences),
+    )
+
+
+def snapshot_rows(board: Standings) -> list[tuple[str, str, int, int]]:
+    return [
+        (conference.key, normalize_name(row.name), row.rank, row.points)
+        for conference in board.conferences
+        for row in conference.rows
+    ]
+
+
 def _caption(tournament: str, stage: str, as_of: str, conferences: tuple[Conference, ...]) -> str:
     lines = [tournament, stage, as_of, ""]
     for conference in conferences:
         lines.append(conference.title)
         for row in conference.rows:
+            extra = ""
+            if row.points_delta:
+                sign = "+" if row.points_delta > 0 else "−"
+                extra += f" {sign}{abs(row.points_delta)}"
+            if row.move:
+                arrow = "↑" if row.move > 0 else "↓"
+                extra += f" {arrow}{abs(row.move)}"
             lines.append(
-                f"{row.rank}. {row.name} — {row.points} "
+                f"{row.rank}. {row.name} — {row.points}{extra} "
                 f"({row.played} {_games(row.played)}, {row.goals_for}–{row.goals_against})"
             )
         lines.append("")

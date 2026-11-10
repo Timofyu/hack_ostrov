@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
+from hockeybot.db import Database
 from hockeybot.khl import KhlError
-from hockeybot.standings import load_standings, standings_from_payload
+from hockeybot.logos import logo_file
+from hockeybot.standings import apply_movement, load_standings, snapshot_rows, standings_from_payload
+from hockeybot.teams import normalize_name
 
 TODAY = datetime(2026, 11, 7, 12, tzinfo=timezone(timedelta(hours=3)))
 
@@ -62,6 +65,25 @@ def test_ninth_place_is_outside_the_playoff_line() -> None:
     assert board.conferences[0].rows[7].playoff is True
     assert board.conferences[0].rows[8].playoff is False
     assert "Первые 8 мест" in board.caption
+
+
+def test_movement_uses_the_previous_saved_day(tmp_path) -> None:
+    board = standings_from_payload(_payload(), "both", today=TODAY)
+    db = Database(tmp_path / "bot.sqlite")
+    yesterday = []
+    for conference, club, rank, points in snapshot_rows(board):
+        if club == normalize_name("ЦСКА"):
+            yesterday.append((conference, club, rank + 1, points - 2))
+        else:
+            yesterday.append((conference, club, rank, points))
+    db.save_table_snapshot(board.season, "2026-11-06", yesterday)
+    moved = apply_movement(board, db.previous_table(board.season, "2026-11-07"))
+    cska = moved.conferences[0].rows[0]
+    assert cska.move == 1
+    assert cska.points_delta == 2
+    assert "1. ЦСКА — 20 +2 ↑1" in moved.caption
+    assert logo_file("Авангард") == "авангард.png"
+    assert logo_file("Неизвестный клуб") == ""
 
 
 def test_loader_uses_the_opener() -> None:

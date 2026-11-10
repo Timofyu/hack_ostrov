@@ -12,6 +12,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from hockeybot.daypreview import DaySlate
+from hockeybot.logos import logo_file, stage_logos
 from hockeybot.models import Club, Footer, Goal, MatchCard
 from hockeybot.standings import Standings
 
@@ -36,6 +37,7 @@ def render_day(slate: DaySlate, dest: Path, chrome_path: str | None = None) -> P
         "tournament": slate.tournament,
         "when": slate.date_label,
         "count": min(len(slate.games), 8),
+        "title": slate.title,
         "games": [
             {
                 "time": game.time,
@@ -45,6 +47,8 @@ def render_day(slate: DaySlate, dest: Path, chrome_path: str | None = None) -> P
                 "away_city": game.away_city,
                 "home_mark": _hex(game.home_mark, "#d6ff3c"),
                 "away_mark": _hex(game.away_mark, "#8eb6ff"),
+                "home_logo": logo_file(game.home),
+                "away_logo": logo_file(game.away),
                 "score": game.score,
                 "live": game.live,
             }
@@ -72,6 +76,10 @@ def render_table(board: Standings, dest: Path, chrome_path: str | None = None) -
                         "name": row.name,
                         "city": row.city,
                         "mark": _hex(row.mark, "#d6ff3c"),
+                        "logo": logo_file(row.name),
+                        "move_label": _move_label(row.move),
+                        "move_class": _move_class(row.move),
+                        "points_label": _points_label(row.points_delta),
                         "played": row.played,
                         "wins": row.wins,
                         "ot_wins": row.ot_wins,
@@ -131,6 +139,7 @@ def _paint(template: str, view: dict, dest: Path, chrome: str, tmp: Path | None 
         with tempfile.TemporaryDirectory(prefix="hockey-poster-") as tmp_name:
             return _paint(template, view, dest, chrome, Path(tmp_name))
     _link_fonts(tmp / "fonts")
+    stage_logos(tmp, view)
     html = _ENV.get_template(template).render(**view)
     (tmp / "index.html").write_text(html, encoding="utf-8")
     png = tmp / "poster.png"
@@ -182,6 +191,8 @@ def build_view(card: MatchCard) -> dict:
         "home_city": card.home.city,
         "away_city": card.away.city,
         "away_name": card.away.name,
+        "home_logo": logo_file(card.home.name),
+        "away_logo": logo_file(card.away.name),
         "home_score": card.home_score,
         "away_score": card.away_score,
         "wide_score": wide_score,
@@ -362,6 +373,30 @@ def _first_index(goals: list[Goal], scorer: str) -> int:
         if goal.scorer == scorer:
             return index
     return 0
+
+
+def _move_label(move: int | None) -> str:
+    if move is None:
+        return ""
+    if move > 0:
+        return f"↑{move}"
+    if move < 0:
+        return f"↓{abs(move)}"
+    return "·"
+
+
+def _move_class(move: int | None) -> str:
+    if move is None or move == 0:
+        return "flat"
+    return "up" if move > 0 else "down"
+
+
+def _points_label(delta: int | None) -> str:
+    if not delta:
+        return ""
+    if delta > 0:
+        return f"+{delta}"
+    return f"−{abs(delta)}"
 
 
 def _hex(value: str, fallback: str) -> str:
