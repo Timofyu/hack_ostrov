@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from hockeybot.db import Database
-from hockeybot.keyboards import channel_kb, menu_kb
+from hockeybot.keyboards import channel_kb, dock_kb, menu_kb
 from hockeybot.templates_lib import PLACEHOLDERS
 
 router = Router(name="common")
@@ -22,7 +22,7 @@ HELP = (
     "Если матч ещё идёт, пост придёт сам, когда протокол закроется.\n\n"
     "Бот отвечает в Telegram с телефона и с компьютера. "
     "Чтобы он не замолкал при выключенном домашнем ПК, его держат на сервере.\n\n"
-    "Создать пост — итоги матча, итоги дня, таблица или превью дня.\n"
+    "Кнопки внизу, над полем ввода: итоги матча, итоги дня, таблица, превью дня.\n"
     "Таблица показывает очки и как изменилось место со вчерашнего сохранённого дня.\n"
     "Шаблоны — свои тексты для других постов.\n"
     "Канал — куда публиковать готовый пост. Бот должен быть администратором.\n\n"
@@ -42,7 +42,7 @@ def placeholder_help() -> str:
 @router.message(Command("help"))
 async def start(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(HELP, reply_markup=menu_kb())
+    await message.answer(HELP, reply_markup=dock_kb())
 
 
 @router.message(Command("cancel"))
@@ -54,14 +54,54 @@ async def cancel(event: Message | CallbackQuery, state: FSMContext) -> None:
         await event.answer()
         await event.message.answer(text, reply_markup=menu_kb())
         return
-    await event.answer(text, reply_markup=menu_kb())
+    await event.answer(text, reply_markup=dock_kb())
 
 
 @router.callback_query(F.data == "menu:home")
 async def menu_home(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(None)
     await callback.answer()
-    await callback.message.answer(HELP, reply_markup=menu_kb())
+    await callback.message.answer(HELP, reply_markup=dock_kb())
+
+
+@router.message(F.text == "Итоги матча")
+async def dock_match(message: Message, state: FSMContext, db: Database) -> None:
+    from hockeybot.handlers.result import open_results
+
+    await open_results(message, state, db, message.from_user.id)
+
+
+@router.message(F.text == "Итоги дня")
+async def dock_results(message: Message, state: FSMContext) -> None:
+    from hockeybot.handlers.day import open_day
+
+    await open_day(message, state, results=True)
+
+
+@router.message(F.text == "Превью дня")
+async def dock_day(message: Message, state: FSMContext) -> None:
+    from hockeybot.handlers.day import open_day
+
+    await open_day(message, state, results=False)
+
+
+@router.message(F.text == "Таблица")
+async def dock_table(message: Message, state: FSMContext) -> None:
+    from hockeybot.handlers.table import open_table
+
+    await open_table(message, state)
+
+
+@router.message(F.text == "Шаблоны")
+async def dock_templates(message: Message, state: FSMContext, db: Database) -> None:
+    from hockeybot.handlers.templates import show_templates
+
+    await show_templates(message, state, db)
+
+
+@router.message(F.text == "Канал")
+async def dock_channel(message: Message, db: Database) -> None:
+    await channel_help(message, db)
 
 
 @router.message(Command("channel"))

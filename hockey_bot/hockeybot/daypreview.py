@@ -117,10 +117,10 @@ def day_scale(names: list[str], count: int) -> dict[str, int]:
     title = _clamp(78 - max(count - 2, 0) * 5, 42, 72)
     row = (1350 - 68 - 48 - title - 28) / count
     gap = 12 if count >= 7 else 18
-    base_crest = _clamp(round(row * 0.5), 44, 136)
-    base_name = _clamp(round(row * 0.17), 22, 52)
-    base_clock = _clamp(round(row * 0.15), 26, 48)
-    base_score = _clamp(round(row * 0.23), 32, 84)
+    base_crest = _clamp(round(row * 0.64), 64, 168)
+    base_name = _clamp(round(row * 0.2), 26, 58)
+    base_clock = _clamp(round(row * 0.16), 28, 52)
+    base_score = _clamp(round(row * 0.26), 36, 96)
 
     def pack(scale: float) -> tuple[int, int, int, int]:
         name = max(17, round(base_name * scale))

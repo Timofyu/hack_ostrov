@@ -25,11 +25,15 @@ _PROMPT = (
 )
 
 
+async def open_table(message, state: FSMContext) -> None:
+    await state.set_state(None)
+    await message.answer(_PROMPT, reply_markup=table_kb())
+
+
 @router.callback_query(F.data == "menu:table")
 async def ask_table(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.set_state(None)
     await callback.answer()
-    await callback.message.answer(_PROMPT, reply_markup=table_kb())
+    await open_table(callback.message, state)
 
 
 @router.callback_query(F.data.startswith("table:"))

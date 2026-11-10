@@ -49,11 +49,15 @@ async def ask_results(callback: CallbackQuery, state: FSMContext) -> None:
     await _ask(callback, state, results=True)
 
 
-async def _ask(callback: CallbackQuery, state: FSMContext, *, results: bool) -> None:
+async def open_day(message: Message, state: FSMContext, *, results: bool) -> None:
     await state.set_state(DaySG.date)
     await state.update_data(day_mode="results" if results else "preview")
+    await message.answer(_RESULTS_PROMPT if results else _PROMPT, reply_markup=day_kb())
+
+
+async def _ask(callback: CallbackQuery, state: FSMContext, *, results: bool) -> None:
     await callback.answer()
-    await callback.message.answer(_RESULTS_PROMPT if results else _PROMPT, reply_markup=day_kb())
+    await open_day(callback.message, state, results=results)
 
 
 @router.callback_query(F.data == "day:today")

@@ -36,23 +36,35 @@
     width: 1080px;
     height: 1350px;
     overflow: hidden;
-    background: #07110c;
-    color: #f4f7ef;
+    background: #0c0c0e;
+    color: #f5f5f5;
     font-family: "Inter", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   .poster {
+    position: relative;
     width: 1080px;
     height: 1350px;
     display: flex;
     flex-direction: column;
     padding: 36px 40px 32px;
-    background:
-      radial-gradient(560px 300px at 8% 0%, rgba(214, 255, 60, 0.16), transparent 70%),
-      #07110c;
+    background: #0c0c0e;
   }
+  .poster::before,
+  .poster::after {
+    content: "";
+    position: absolute;
+    width: 260px;
+    height: 16px;
+    background: #e10600;
+    transform: rotate(-32deg);
+    box-shadow: 28px 22px 0 #e10600;
+  }
+  .poster::before { top: 6px; right: -90px; }
+  .poster::after { bottom: 28px; right: -70px; }
 
+  .top, h1, .games { position: relative; z-index: 1; }
   .top {
     display: flex;
     justify-content: space-between;
@@ -81,6 +93,7 @@
     text-transform: uppercase;
     line-height: 0.95;
   }
+  h1 span { color: #ff2b2b; }
 
   .games {
     flex: 1;
@@ -102,7 +115,7 @@
     font-family: "Unbounded", sans-serif;
     font-size: var(--time);
     font-weight: 700;
-    color: #d6ff3c;
+    color: #ff2b2b;
   }
   .side { min-width: 0; }
   .side.away { text-align: right; }
@@ -161,13 +174,13 @@
     <header class="top">
       <div class="chip">
         <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="#d6ff3c" />
+          <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="#ff2b2b" />
         </svg>
         <span>{{ tournament }}</span>
       </div>
       <div class="chip">{{ when }}</div>
     </header>
-    <h1>{{ title }}</h1>
+    <h1>{% set words = title.split(' ') %}{{ words[0] }}{% if words|length > 1 %} <span>{{ words[1:]|join(' ') }}</span>{% endif %}</h1>
     <div class="games">
       {% for game in games %}
       <article class="game">

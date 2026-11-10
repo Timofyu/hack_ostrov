@@ -36,8 +36,8 @@
     width: 1080px;
     height: 1350px;
     overflow: hidden;
-    background: #07110c;
-    color: #f4f7ef;
+    background: #0c0c0e;
+    color: #f5f5f5;
     font-family: "Inter", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -47,12 +47,23 @@
     height: 1350px;
     display: flex;
     flex-direction: column;
-    padding: 32px 32px 26px;
-    background:
-      radial-gradient(520px 280px at 12% 0%, rgba(214, 255, 60, 0.14), transparent 70%),
-      radial-gradient(480px 280px at 100% 8%, rgba(142, 182, 255, 0.12), transparent 72%),
-      #07110c;
+    position: relative;
+    padding: 32px 36px 24px;
+    background: #0c0c0e;
   }
+  .poster::before,
+  .poster::after {
+    content: "";
+    position: absolute;
+    width: 240px;
+    height: 16px;
+    background: #e10600;
+    transform: rotate(-32deg);
+    box-shadow: 28px 22px 0 #e10600;
+  }
+  .poster::before { top: 4px; right: -80px; }
+  .poster::after { bottom: 20px; right: -60px; }
+  .top, .stage, .columns, .foot { position: relative; z-index: 1; }
 
   .top {
     display: flex;
@@ -103,19 +114,20 @@
     text-transform: uppercase;
     margin-bottom: 8px;
   }
-  .west h2, .west .pts { color: #d6ff3c; }
-  .east h2, .east .pts { color: #8eb6ff; }
+  .conf h2 { color: #f5f5f5; }
+  .east h2 { color: #ff2b2b; }
+  .extra { display: none; }
 
   .head, .row {
     display: grid;
     align-items: center;
-    column-gap: 8px;
+    column-gap: 10px;
   }
   .pair .head, .pair .row {
-    grid-template-columns: 42px minmax(0, 1fr) 36px 62px 48px;
+    grid-template-columns: 52px minmax(0, 1fr) 72px;
   }
   .single .head, .single .row {
-    grid-template-columns: 46px minmax(0, 1fr) 36px 32px 32px 32px 32px 32px 32px 70px 52px;
+    grid-template-columns: 78px minmax(0, 1fr) 72px 130px 96px;
   }
   .head {
     color: #5e7568;
@@ -137,9 +149,10 @@
 
   .rank {
     font-family: "Unbounded", sans-serif;
-    font-size: 16px;
+    font-size: 22px;
     font-weight: 700;
   }
+  .single .rank { font-size: 34px; }
   .club {
     display: flex;
     align-items: center;
@@ -151,10 +164,11 @@
     height: 28px;
     flex: none;
   }
-  .crest { width: 22px; height: 22px; object-fit: contain; flex: none; }
-  .single .crest { width: 28px; height: 28px; }
-  .rank { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; gap: 2px; }
-  .rank small { font-family: "Inter", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0; }
+  .crest { width: 52px; height: 52px; object-fit: contain; flex: none; }
+  .single .crest { width: 78px; height: 78px; }
+  .rank { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; gap: 3px; }
+  .rank small { font-family: "Inter", sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0; }
+  .single .rank small { font-size: 16px; }
   .move.up { color: #d6ff3c; }
   .move.down { color: #ff6b78; }
   .move.flat { color: #5e7568; }
@@ -174,32 +188,33 @@
     text-overflow: ellipsis;
   }
   .club b {
-    font-size: 15px;
+    font-size: 20px;
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
   }
-  .single .club b { font-size: 20px; }
+  .single .club b { font-size: 32px; }
+  .pair .club small { display: none; }
   .club small {
-    margin-top: 1px;
-    color: #8ea396;
-    font-size: 11px;
+    margin-top: 2px;
+    color: #9a9a9a;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .n, .pts { text-align: right; font-variant-numeric: tabular-nums; }
-  .n { font-size: 14px; font-weight: 600; }
-  .single .n { font-size: 16px; }
-  .goals { color: #8ea396; font-size: 13px; }
+  .n { font-size: 18px; font-weight: 600; }
+  .single .n { font-size: 26px; }
+  .goals { color: #b5b5b5; }
   .pts {
     font-family: "Unbounded", sans-serif;
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 700;
+    color: #ff2b2b;
   }
-  .single .pts { font-size: 22px; }
-  .pair .extra { display: none; }
-  .single .pair-only { display: none; }
+  .single .pts { font-size: 42px; }
+  .pair .pair-only, .pair .n, .pair .games { display: none; }
 
   .foot {
     margin-top: 12px;
@@ -216,7 +231,7 @@
     <header class="top">
       <div class="chip">
         <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="#d6ff3c" />
+          <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="#ff2b2b" />
         </svg>
         <span>{{ tournament }}</span>
       </div>
@@ -230,7 +245,7 @@
         <div class="head">
           <span>#</span>
           <span>Клуб</span>
-          <span>И</span>
+          <span class="games">И</span>
           <span class="extra">В</span>
           <span class="extra">ВО</span>
           <span class="extra">ВБ</span>

@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from aiogram.fsm.state import State
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from hockeybot.models import Club
 from hockeybot.states import MatchSG
 from hockeybot.templates_lib import PostTemplate
+
+
+def dock_kb() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Итоги матча"), KeyboardButton(text="Итоги дня")],
+            [KeyboardButton(text="Таблица"), KeyboardButton(text="Превью дня")],
+            [KeyboardButton(text="Шаблоны"), KeyboardButton(text="Канал")],
+        ],
+        resize_keyboard=True,
+        is_persistent=True,
+        input_field_placeholder="Клубы и дата или кнопка внизу",
+    )
 
 
 def menu_kb() -> InlineKeyboardMarkup:

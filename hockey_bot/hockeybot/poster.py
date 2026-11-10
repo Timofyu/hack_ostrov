@@ -191,7 +191,12 @@ def build_view(card: MatchCard) -> dict:
         "away_size": name_size(away_lines),
         "home_city": card.home.city,
         "away_city": card.away.city,
+        "home_name": card.home.name,
         "away_name": card.away.name,
+        "verdict": _verdict(card),
+        "star": _star(card.goals),
+        "goalie": _goalie(card.footer),
+        "is_result": card.kind != "announce",
         "home_logo": logo_file(card.home.name),
         "away_logo": logo_file(card.away.name),
         "home_score": card.home_score,
@@ -220,6 +225,42 @@ def build_view(card: MatchCard) -> dict:
         "bar_ink": _hex(card.home.bar_ink, "#0a1408"),
         "photo_name": "",
         "guest_line": " · ".join(part for part in (card.away.name, card.away.city) if part),
+    }
+
+
+def _verdict(card: MatchCard) -> str:
+    blob = f"{card.note} {card.footer.right}".lower()
+    if "бул" in blob or "буллит" in blob:
+        return "БУЛ"
+    if "овер" in blob:
+        return "ОТ"
+    return ""
+
+
+def _star(goals: list[Goal]) -> dict[str, str] | None:
+    if not goals:
+        return None
+    counts = Counter(goal.scorer for goal in goals)
+    name = max(counts, key=lambda scorer: (counts[scorer], -_first_index(goals, scorer)))
+    count = counts[name]
+    titles = {2: "дубль", 3: "хет-трик", 4: "покер"}
+    return {
+        "name": name.upper(),
+        "sub": titles.get(count, ""),
+        "value": str(count),
+        "label": "ШАЙБЫ",
+    }
+
+
+def _goalie(footer: Footer) -> dict[str, str] | None:
+    if not footer.left.strip():
+        return None
+    found = re.search(r"\d+", footer.center or "")
+    return {
+        "name": footer.left.upper(),
+        "sub": footer.left_sub.strip(),
+        "value": found.group(0) if found else "",
+        "label": "СЕЙВ",
     }
 
 

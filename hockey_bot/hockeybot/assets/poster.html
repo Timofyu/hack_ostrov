@@ -19,12 +19,6 @@
   }
   @font-face {
     font-family: "Inter";
-    src: url("fonts/Inter-Medium.ttf") format("truetype");
-    font-weight: 500;
-    font-display: block;
-  }
-  @font-face {
-    font-family: "Inter";
     src: url("fonts/Inter-SemiBold.ttf") format("truetype");
     font-weight: 600;
     font-display: block;
@@ -36,593 +30,319 @@
     font-display: block;
   }
 
-  :root {
-    --ink: #07110c;
-    --accent: {{ accent }};
-    --away: {{ away }};
-    --bar: {{ bar }};
-    --bar-ink: {{ bar_ink }};
-    --ice: #f4f7ef;
-    --mute: #8ea396;
-    --dim: #5e7568;
-    --honey: #e4b65a;
-  }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   html, body {
     width: 1080px;
     height: 1350px;
     overflow: hidden;
-    background: var(--ink);
-    color: var(--ice);
+    background: #0c0c0e;
+    color: #f5f5f5;
     font-family: "Inter", sans-serif;
-    -webkit-font-smoothing: antialiased;
   }
 
   .poster {
     width: 1080px;
     height: 1350px;
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background:
-      radial-gradient(540px 300px at 16% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%),
-      var(--ink);
+    background: #0c0c0e;
   }
 
-  .hero {
-    position: relative;
+  .photo {
+    width: 470px;
+    height: 1350px;
     flex: none;
     overflow: hidden;
-    background: #101612;
+    background: #161616;
   }
-  .mode-photo-result .hero { height: 868px; }
-  .mode-photo-result.dense .hero { height: 720px; }
-  .mode-photo-result.dense .five,
-  .mode-photo-result.dense .zero { font-size: 118px; }
-  .mode-photo-announce .hero { height: 760px; }
-
-  .hero img {
+  .photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center 42%;
+    object-position: center 28%;
     display: block;
-    filter: contrast(1.04) saturate(1.06);
-  }
-  .hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(180deg, rgba(7, 17, 12, 0.28) 0%, rgba(7, 17, 12, 0) 18%),
-      linear-gradient(180deg, rgba(7, 17, 12, 0) 72%, rgba(7, 17, 12, 0.55) 100%);
   }
 
-  .top {
-    position: absolute;
-    z-index: 2;
-    top: 28px;
-    left: 32px;
-    right: 32px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .topflow {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .chip {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(7, 17, 12, 0.78);
-    color: var(--ice);
-    padding: 9px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-  .mark {
-    width: 14px;
-    height: 14px;
-    flex: none;
-  }
-
-  .blade {
-    position: absolute;
-    z-index: 2;
-    left: 32px;
-    bottom: 22px;
+  .panel {
+    position: relative;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    padding: 42px 40px 32px;
+    overflow: hidden;
   }
-  .blade b {
-    font-family: "Unbounded", sans-serif;
-    font-weight: 700;
-    font-size: 22px;
-    letter-spacing: 0.06em;
-    color: var(--accent);
-    text-transform: uppercase;
-    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75);
-  }
-  .blade span {
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(244, 247, 239, 0.9);
-    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
-  }
+  .solo .panel { padding: 78px 88px 56px; }
 
-  .seam { height: 4px; flex: none; background: var(--accent); }
-
-  .sheet {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 452px 1fr;
-    gap: 28px;
-    padding: 26px 36px 18px;
-    min-height: 0;
+  .panel::before,
+  .panel::after {
+    content: "";
+    position: absolute;
+    width: 240px;
+    height: 16px;
+    background: #e10600;
+    transform: rotate(-32deg);
+    box-shadow: 28px 22px 0 #e10600;
   }
-  .sheet.solo { grid-template-columns: 1fr; }
-
-  .identity, .tape, .scorestage, .ann, .announce-sheet {
-    min-width: 0;
-    min-height: 0;
-  }
-  .identity, .tape { display: flex; flex-direction: column; }
+  .panel::before { top: 8px; right: -78px; }
+  .panel::after { bottom: 48px; right: -64px; }
 
   .kicker {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
-  .kicker.guest { color: var(--away); }
-
-  .teamrow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 6px;
-  }
-  .teamrow.away { flex-direction: row-reverse; }
-  .crest { width: 52px; height: 52px; object-fit: contain; flex: none; }
-  .crest.sm { width: 36px; height: 36px; }
-  .team {
-    font-family: "Unbounded", sans-serif;
-    font-weight: 800;
-    line-height: 0.92;
-    letter-spacing: -0.035em;
-    text-transform: uppercase;
-  }
-  .team.lg { font-size: 34px; }
-  .team.md { font-size: 28px; }
-  .team.sm { font-size: 22px; }
-  .team.away { color: var(--away); }
-
-  .city {
-    margin-top: 8px;
-    font-size: 13px;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--mute);
+    color: #d5d5d5;
   }
 
-  .score {
-    margin-top: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .five, .zero, .vs {
+  h1 {
+    position: relative;
+    z-index: 1;
+    margin-top: 22px;
+    text-align: center;
     font-family: "Unbounded", sans-serif;
+    font-size: 52px;
     font-weight: 800;
-    line-height: 0.78;
-    letter-spacing: -0.06em;
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
   }
-  .five, .zero { font-size: 148px; }
-  .score.wide .five, .score.wide .zero { font-size: 112px; }
-  .five { color: var(--accent); }
-  .zero { color: var(--away); }
-  .colon {
-    font-family: "Unbounded", sans-serif;
-    font-weight: 700;
-    font-size: 72px;
-    line-height: 0.8;
-    color: var(--ice);
-    transform: translateY(-6px);
-  }
-  .vs { color: var(--accent); letter-spacing: -0.04em; }
+  h1 span { color: #ff2b2b; }
+  .solo h1 { font-size: 84px; margin-top: 36px; }
 
-  .periods { margin-top: 14px; display: flex; gap: 22px; }
-  .periods div { display: flex; flex-direction: column; gap: 2px; }
-  .periods em {
-    font-style: normal;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    color: var(--dim);
-  }
-  .periods b {
-    font-family: "Unbounded", sans-serif;
-    font-weight: 700;
-    font-size: 20px;
-    letter-spacing: 0.02em;
-    color: var(--ice);
-  }
-  .periods b i { font-style: normal; color: var(--away); }
-
-  .guestline { margin-top: auto; padding-top: 14px; }
-  .opp {
-    margin-top: 4px;
+  .clubs {
+    position: relative;
+    z-index: 1;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: "Unbounded", sans-serif;
-    font-weight: 600;
-    font-size: 18px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--away);
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 34px;
   }
-
-  .tape-label {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--dim);
-    margin-bottom: 6px;
+  .club { width: 46%; text-align: center; min-width: 0; }
+  .crest {
+    width: 132px;
+    height: 132px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
   }
-  .goals { display: flex; flex-direction: column; }
-  .goal {
-    display: grid;
-    grid-template-columns: 64px minmax(120px, 180px) 1fr auto;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 0;
-    border-top: 1px solid rgba(244, 247, 239, 0.08);
+  .solo .crest { width: 210px; height: 210px; }
+  .mark {
+    width: 132px;
+    height: 132px;
+    margin: 0 auto;
+    border-radius: 8px;
   }
-  .goal:first-child { border-top-color: transparent; }
-  .dense .goal { padding: 4px 0; }
-  .time {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--accent);
-  }
-  .who {
-    font-weight: 600;
-    font-size: 16px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .who.hot { color: var(--accent); }
-  .assists {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--mute);
+  .solo .mark { width: 210px; height: 210px; }
+  .club b, .club small {
+    display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .tag {
-    font-size: 10px;
+  .club b {
+    margin-top: 12px;
+    font-size: 24px;
     font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .solo .club b { font-size: 36px; }
+  .club small {
+    margin-top: 4px;
+    color: #9a9a9a;
+    font-size: 14px;
+    font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    padding: 3px 6px 2px;
-    border: 1px solid transparent;
   }
-  .tag.sh { color: var(--honey); border-color: rgba(228, 182, 90, 0.55); }
-  .tag.pp { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
-  .tag.empty { visibility: hidden; }
 
-  .note {
-    margin-top: auto;
-    padding-top: 12px;
-    border-top: 1px solid rgba(244, 247, 239, 0.08);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.45;
-    color: var(--mute);
-    white-space: pre-line;
-  }
-  .identity .note { border-top: 0; padding-top: 18px; }
-
-  .lamp {
-    height: 72px;
-    flex: none;
-    background: var(--bar);
-    color: var(--bar-ink);
+  .score {
+    position: relative;
+    z-index: 1;
+    margin-top: 26px;
+    padding: 18px 0 28px;
+    display: flex;
     align-items: center;
-    padding: 0 36px;
+    justify-content: center;
+    gap: 16px;
   }
-  .lamp.cols {
-    display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr;
+  .score::before, .score::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
   }
-  .lamp.one { display: flex; justify-content: center; text-align: center; }
-  .lamp .cell:nth-child(2) { text-align: center; }
-  .lamp .cell:nth-child(3) { text-align: right; }
-  .lamp strong {
+  .score::before { top: 0; }
+  .score::after { bottom: 0; }
+  .score b {
+    font-family: "Unbounded", sans-serif;
+    font-size: 128px;
+    font-weight: 800;
+    line-height: 0.8;
+    letter-spacing: -0.04em;
+  }
+  .solo .score b { font-size: 210px; }
+  .score.wide b { font-size: 96px; }
+  .solo .score.wide b { font-size: 150px; }
+  .score i {
+    font-family: "Unbounded", sans-serif;
+    font-style: normal;
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 0.8;
+  }
+  .score em {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    transform: translateX(-50%);
+    font-style: normal;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+  }
+
+  .when {
+    position: relative;
+    z-index: 1;
+    margin-top: 36px;
+    text-align: center;
+    font-family: "Unbounded", sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .when span {
+    display: block;
+    margin-top: 10px;
+    font-family: "Inter", sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: #9a9a9a;
+  }
+
+  .stats {
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
+  }
+  .stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-top: 1px solid rgba(255,255,255,0.45);
+    padding: 16px 4px;
+  }
+  .who { min-width: 0; }
+  .who b, .who small { display: block; }
+  .who b {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .who small {
+    margin-top: 3px;
+    color: #9a9a9a;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .num { text-align: right; flex: none; }
+  .num b {
     display: block;
     font-family: "Unbounded", sans-serif;
+    font-size: 48px;
     font-weight: 800;
-    font-size: 20px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    line-height: 1;
+    line-height: 0.85;
   }
-  .lamp small {
+  .num small {
     display: block;
     margin-top: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    opacity: 0.72;
-  }
-
-  .typewrap, .ann {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 40px 52px 32px;
-    min-height: 0;
-  }
-  .mode-type-result .team.lg { font-size: 64px; }
-  .mode-type-result .team.md { font-size: 48px; }
-  .mode-type-result .team.sm { font-size: 36px; }
-  .mode-type-result .five,
-  .mode-type-result .zero { font-size: 188px; }
-  .mode-type-result .score.wide .five,
-  .mode-type-result .score.wide .zero { font-size: 140px; }
-  .mode-type-result.dense .team.lg { font-size: 46px; }
-  .mode-type-result.dense .five,
-  .mode-type-result.dense .zero { font-size: 132px; }
-  .mode-type-result .tape { margin-top: 28px; }
-  .mode-type-result .note { margin-top: 18px; }
-  .mode-type-result .goal {
-    grid-template-columns: 86px 230px auto auto;
-    justify-content: start;
-    column-gap: 18px;
-  }
-
-  .ann-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-bottom: 48px;
-  }
-  .mode-type-announce .kicker { margin-top: 0; }
-  .mode-type-announce .team.lg { font-size: 72px; margin-top: 12px; }
-  .mode-type-announce .team.md { font-size: 52px; margin-top: 12px; }
-  .mode-type-announce .team.sm { font-size: 40px; margin-top: 12px; }
-  .mode-type-announce .vs { font-size: 120px; margin: 28px 0 22px; }
-  .whenbig {
-    margin-top: 28px;
-    font-family: "Unbounded", sans-serif;
+    font-size: 13px;
     font-weight: 700;
-    font-size: 28px;
-    letter-spacing: 0.02em;
-    line-height: 1.25;
-    text-transform: uppercase;
-  }
-  .whenbig span {
-    display: block;
-    margin-top: 6px;
-    font-family: "Inter", sans-serif;
-    font-weight: 600;
-    font-size: 16px;
     letter-spacing: 0.16em;
-    color: var(--mute);
   }
-  .mode-type-announce .note {
-    border-top: 0;
-    margin-top: 18px;
-    padding-top: 0;
-    font-size: 18px;
-    color: var(--ice);
-  }
-
-  .announce-sheet {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 32px 48px 36px;
-  }
-  .mode-photo-announce .team.lg { font-size: 48px; }
-  .mode-photo-announce .team.md { font-size: 40px; }
-  .mode-photo-announce .team.sm { font-size: 32px; }
-  .mode-photo-announce .vs { font-size: 84px; margin: 12px 0; }
-  .mode-photo-announce .whenbig { margin-top: 18px; font-size: 22px; }
-  .mode-photo-announce .note { color: var(--ice); border-top: 0; }
 </style>
 </head>
 <body>
-{% macro chip_row(flow) %}
-  <header class="{{ 'topflow' if flow else 'top' }}">
-    <div class="chip">
-      <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M8 1.2 L14.2 8 L8 14.8 L1.8 8 Z" fill="{{ accent }}" />
-      </svg>
-      <span>{{ tournament }}</span>
-    </div>
-    {% if when_chip %}
-      <div class="chip">{{ when_chip }}</div>
+  <article class="poster{% if not photo_name %} solo{% endif %}">
+    {% if photo_name %}
+      <div class="photo"><img src="{{ photo_name }}" alt="" /></div>
     {% endif %}
-  </header>
-{% endmacro %}
-
-{% macro team_block(lines, size, away, logo) %}
-  <div class="teamrow{% if away %} away{% endif %}">
-    {% if logo %}<img class="crest" src="logos/{{ logo }}" alt="" />{% endif %}
-    <div class="team {{ size }}{% if away %} away{% endif %}">
-      {% for line in lines %}{{ line }}{% if not loop.last %}<br />{% endif %}{% endfor %}
-    </div>
-  </div>
-{% endmacro %}
-
-{% macro score_row() %}
-  <div class="score{% if wide_score %} wide{% endif %}" aria-label="Счёт {{ home_score }}:{{ away_score }}">
-    <span class="five">{{ home_score }}</span>
-    <span class="colon">:</span>
-    <span class="zero">{{ away_score }}</span>
-  </div>
-{% endmacro %}
-
-{% macro period_row() %}
-  {% if periods %}
-    <div class="periods">
-      {% for period in periods %}
-        <div><em>{{ period.label }}</em><b>{{ period.home }}:<i>{{ period.away }}</i></b></div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endmacro %}
-
-{% macro goal_list() %}
-  <div class="goals">
-    {% for goal in goals %}
-      <div class="goal">
-        <span class="time">{{ goal.time }}</span>
-        <span class="who{% if goal.hot %} hot{% endif %}">{{ goal.scorer }}</span>
-        <span class="assists">{{ goal.assists }}</span>
-        {% if goal.tag == "мен" %}
-          <span class="tag sh">мен</span>
-        {% elif goal.tag == "бол" %}
-          <span class="tag pp">бол</span>
-        {% else %}
-          <span class="tag empty">—</span>
-        {% endif %}
-      </div>
-    {% endfor %}
-  </div>
-{% endmacro %}
-
-{% macro lamp() %}
-  {% if footer_cells %}
-    <footer class="lamp {{ 'one' if footer_single else 'cols' }}">
-      {% for cell in footer_cells %}
-        <div class="cell">
-          {% if cell.text %}<strong>{{ cell.text }}</strong>{% endif %}
-          {% if cell.sub %}<small>{{ cell.sub }}</small>{% endif %}
+    <section class="panel">
+      <div class="kicker">{{ tournament }}{% if date %} · {{ date }}{% endif %}</div>
+      {% if is_result %}
+        <h1>Результат<br /><span>матча</span></h1>
+      {% else %}
+        <h1>Анонс<br /><span>матча</span></h1>
+      {% endif %}
+      <div class="clubs">
+        <div class="club">
+          {% if home_logo %}
+            <img class="crest" src="logos/{{ home_logo }}" alt="" />
+          {% else %}
+            <div class="mark" style="background: {{ accent }}"></div>
+          {% endif %}
+          <b>{{ home_name }}</b>
+          {% if home_city %}<small>{{ home_city }}</small>{% endif %}
         </div>
-      {% endfor %}
-    </footer>
-  {% endif %}
-{% endmacro %}
-
-<article class="poster mode-{{ mode }}{% if dense %} dense{% endif %}">
-  {% if mode == "photo-result" %}
-    <section class="hero">
-      <img src="{{ photo_name }}" alt="" />
-      {{ chip_row(false) }}
-      {% if headline %}
-        <div class="blade">
-          <b>{{ headline }}</b>
-          {% if headline_sub %}<span>{{ headline_sub }}</span>{% endif %}
+        <div class="club">
+          {% if away_logo %}
+            <img class="crest" src="logos/{{ away_logo }}" alt="" />
+          {% else %}
+            <div class="mark" style="background: {{ away }}"></div>
+          {% endif %}
+          <b>{{ away_name }}</b>
+          {% if away_city %}<small>{{ away_city }}</small>{% endif %}
+        </div>
+      </div>
+      {% if is_result and home_score is not none and away_score is not none %}
+        <div class="score{% if wide_score %} wide{% endif %}">
+          <b>{{ home_score }}</b>
+          <i>:</i>
+          <b>{{ away_score }}</b>
+          {% if verdict %}<em>{{ verdict }}</em>{% endif %}
+        </div>
+      {% elif arena or date %}
+        <div class="when">{{ date }}{% if arena %}<span>{{ arena }}</span>{% endif %}</div>
+      {% endif %}
+      {% if star or goalie %}
+        <div class="stats">
+          {% if star %}
+            <div class="stat">
+              <div class="who">
+                <b>{{ star.name }}</b>
+                {% if star.sub %}<small>{{ star.sub }}</small>{% endif %}
+              </div>
+              <div class="num"><b>{{ star.value }}</b><small>{{ star.label }}</small></div>
+            </div>
+          {% endif %}
+          {% if goalie %}
+            <div class="stat">
+              <div class="who">
+                <b>{{ goalie.name }}</b>
+                {% if goalie.sub %}<small>{{ goalie.sub }}</small>{% endif %}
+              </div>
+              <div class="num"><b>{{ goalie.value }}</b><small>{{ goalie.label }}</small></div>
+            </div>
+          {% endif %}
         </div>
       {% endif %}
     </section>
-    <div class="seam"></div>
-    <section class="sheet{% if not goals %} solo{% endif %}">
-      <div class="identity">
-        <div class="kicker">Хозяева льда</div>
-        {{ team_block(home_lines, home_size, false, home_logo) }}
-        {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
-        {{ score_row() }}
-        {{ period_row() }}
-        <div class="guestline">
-          <div class="kicker guest">Гости</div>
-          <div class="opp">{% if away_logo %}<img class="crest sm" src="logos/{{ away_logo }}" alt="" />{% endif %}<span>{{ guest_line }}</span></div>
-        </div>
-        {% if note and not goals %}<div class="note">{{ note }}</div>{% endif %}
-      </div>
-      {% if goals %}
-        <div class="tape">
-          <div class="tape-label">Шайбы</div>
-          {{ goal_list() }}
-          {% if note %}<div class="note">{{ note }}</div>{% endif %}
-        </div>
-      {% endif %}
-    </section>
-    {{ lamp() }}
-
-  {% elif mode == "type-result" %}
-    <div class="typewrap">
-      {{ chip_row(true) }}
-      <div class="scorestage">
-        <div class="kicker" style="margin-top: 28px;">Хозяева льда</div>
-        {{ team_block(home_lines, home_size, false, home_logo) }}
-        {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
-        {{ score_row() }}
-        {{ period_row() }}
-        <div class="guestline" style="margin-top: 22px;">
-          <div class="kicker guest">Гости</div>
-          <div class="opp">{% if away_logo %}<img class="crest sm" src="logos/{{ away_logo }}" alt="" />{% endif %}<span>{{ guest_line }}</span></div>
-        </div>
-      </div>
-      {% if goals %}
-        <div class="tape">
-          <div class="tape-label">Шайбы</div>
-          {{ goal_list() }}
-        </div>
-      {% endif %}
-      {% if note %}<div class="note">{{ note }}</div>{% endif %}
-    </div>
-    {{ lamp() }}
-
-  {% elif mode == "photo-announce" %}
-    <section class="hero">
-      <img src="{{ photo_name }}" alt="" />
-      {{ chip_row(false) }}
-    </section>
-    <div class="seam"></div>
-    <section class="announce-sheet">
-      <div class="kicker">Анонс</div>
-      {{ team_block(home_lines, home_size, false, home_logo) }}
-      {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
-      <div class="vs">VS</div>
-      {{ team_block(away_lines, away_size, true, away_logo) }}
-      {% if away_city %}<div class="city">{{ away_city }}</div>{% endif %}
-      {% if date or arena %}
-        <div class="whenbig">{{ date }}{% if arena %}<span>{{ arena }}</span>{% endif %}</div>
-      {% endif %}
-      {% if note %}<div class="note">{{ note }}</div>{% endif %}
-    </section>
-
-  {% else %}
-    <div class="ann">
-      {{ chip_row(true) }}
-      <div class="ann-main">
-        <div class="kicker">Анонс</div>
-        {{ team_block(home_lines, home_size, false, home_logo) }}
-        {% if home_city %}<div class="city">{{ home_city }}</div>{% endif %}
-        <div class="vs">VS</div>
-        {{ team_block(away_lines, away_size, true, away_logo) }}
-        {% if away_city %}<div class="city">{{ away_city }}</div>{% endif %}
-        {% if date or arena %}
-          <div class="whenbig">{{ date }}{% if arena %}<span>{{ arena }}</span>{% endif %}</div>
-        {% endif %}
-        {% if note %}<div class="note">{{ note }}</div>{% endif %}
-      </div>
-    </div>
-  {% endif %}
-</article>
+  </article>
 </body>
 </html>
