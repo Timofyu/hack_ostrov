@@ -73,39 +73,37 @@
   .mark { width: 14px; height: 14px; flex: none; }
 
   h1 {
-    margin-top: 28px;
+    margin-top: 22px;
     font-family: "Unbounded", sans-serif;
-    font-size: 64px;
+    font-size: var(--title);
     font-weight: 700;
     letter-spacing: 0.02em;
     text-transform: uppercase;
     line-height: 0.95;
   }
-  .count-5 h1, .count-6 h1, .count-7 h1, .count-8 h1 { font-size: 48px; }
 
   .games {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-top: 28px;
+    margin-top: 18px;
     min-height: 0;
   }
   .game {
     flex: 1;
     display: grid;
-    grid-template-columns: 148px minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    column-gap: 18px;
+    column-gap: var(--gap);
     border-top: 1px solid rgba(244, 247, 239, 0.12);
     min-height: 0;
   }
   .time {
     font-family: "Unbounded", sans-serif;
-    font-size: 32px;
+    font-size: var(--time);
     font-weight: 700;
     color: #d6ff3c;
   }
-  .count-5 .time, .count-6 .time, .count-7 .time, .count-8 .time { font-size: 24px; }
   .side { min-width: 0; }
   .side.away { text-align: right; }
   .side b, .side small {
@@ -115,39 +113,38 @@
     text-overflow: ellipsis;
   }
   .side b {
-    font-family: "Unbounded", sans-serif;
-    font-size: 26px;
+    font-family: "Inter", sans-serif;
+    font-size: var(--name);
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
-  .count-5 .side b, .count-6 .side b, .count-7 .side b, .count-8 .side b { font-size: 20px; }
   .side small {
     margin-top: 4px;
     color: #8ea396;
-    font-size: 13px;
+    font-size: var(--city);
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .name {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--crest-gap);
     max-width: 100%;
   }
   .away .name { flex-direction: row-reverse; }
-  .bar { width: 4px; height: 28px; flex: none; }
-  .crest { width: 40px; height: 40px; object-fit: contain; flex: none; }
-  .count-5 .crest, .count-6 .crest, .count-7 .crest, .count-8 .crest { width: 30px; height: 30px; }
+  .bar { width: 4px; height: calc(var(--crest) * 0.72); flex: none; }
+  .crest { width: var(--crest); height: var(--crest); object-fit: contain; flex: none; }
   .mid {
     font-family: "Unbounded", sans-serif;
-    font-size: 28px;
+    font-size: var(--score);
     font-weight: 700;
     color: #8ea396;
     text-align: center;
+    padding: 0 4px;
   }
-  .mid.score { color: #f4f7ef; font-size: 34px; }
+  .mid.score { color: #f4f7ef; }
   .live {
     display: block;
     margin-top: 4px;
@@ -160,7 +157,7 @@
 </style>
 </head>
 <body>
-  <div class="poster count-{{ count }}">
+  <div class="poster" style="--crest: {{ scale.crest }}px; --name: {{ scale.name }}px; --city: {{ scale.city }}px; --score: {{ scale.score }}px; --time: {{ scale.time }}px; --title: {{ scale.title }}px; --gap: {{ scale.gap }}px; --crest-gap: {{ scale.gap }}px;">
     <header class="top">
       <div class="chip">
         <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">

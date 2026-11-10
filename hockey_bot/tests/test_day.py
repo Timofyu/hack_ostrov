@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from hockeybot.daypreview import load_day
+from hockeybot.daypreview import day_scale, load_day
 from hockeybot.khl import KhlError, games_on, parse_calendar_day
 
 TODAY = date(2026, 11, 7)
@@ -70,6 +70,21 @@ def test_finished_day_keeps_the_score() -> None:
     assert results.title == "Итоги дня"
     assert "ЦСКА 2:1 СКА" in results.caption
     assert "Превью" not in results.caption
+
+
+def test_type_grows_when_the_day_has_fewer_games() -> None:
+    short = ["Ак Барс", "Торпедо", "Северсталь", "Лада", "ЦСКА", "Сибирь", "СКА", "Спартак"]
+    four = day_scale(short, 4)
+    eight = day_scale(
+        ["Автомобилист", "Куньлунь Ред Стар", "Динамо Минск", "Салават Юлаев"] * 4,
+        8,
+    )
+    assert four["crest"] > eight["crest"]
+    assert four["name"] > eight["name"]
+    assert four["score"] > eight["score"]
+    assert four["crest"] >= 72
+    assert eight["name"] >= 17
+    assert eight["crest"] >= 34
 
 
 def test_empty_day_is_an_error() -> None:
